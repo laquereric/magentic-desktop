@@ -2,7 +2,11 @@
 
 # Function to show usage
 show_usage() {
-    echo "Usage: $0 [COMMAND]"
+    echo "Usage: $0 [OPTIONS] [COMMAND]"
+    echo ""
+    echo "Options:"
+    echo "  -v, --verbose    Enable verbose output"
+    echo "  -h, --help       Show this help message"
     echo ""
     echo "Commands:"
     echo "  up       - Start the magentic-desktop container (with cleanup)"
@@ -14,9 +18,10 @@ show_usage() {
     echo "  status   - Show container status"
     echo ""
     echo "Examples:"
-    echo "  $0 up     # Start container and follow logs"
-    echo "  $0 logs   # Show logs only"
-    echo "  $0 down   # Stop container"
+    echo "  $0 up              # Start container and follow logs"
+    echo "  $0 -v up           # Start container with verbose output"
+    echo "  $0 logs            # Show logs only"
+    echo "  $0 --verbose down  # Stop container with verbose output"
 }
 
 # Check if docker-compose is available
@@ -31,64 +36,208 @@ if ! docker compose version &> /dev/null; then
     COMPOSE_CMD="docker-compose"
 fi
 
+# Initialize variables
+VERBOSE=false
+COMMAND=""
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -v|--verbose)
+            VERBOSE=true
+            shift
+            ;;
+        -h|--help)
+            show_usage
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $1"
+            echo ""
+            show_usage
+            exit 1
+            ;;
+        *)
+            if [ -z "$COMMAND" ]; then
+                COMMAND="$1"
+            else
+                echo "Too many arguments. Only one command allowed."
+                echo ""
+                show_usage
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Set default command if none provided
+COMMAND="${COMMAND:-up}"
+
+# Verbose output function
+verbose_echo() {
+    if [ "$VERBOSE" = "true" ]; then
+        echo "[VERBOSE] $*"
+    fi
+}
+
 # Function to cleanup existing containers and images
 cleanup_and_rebuild() {
     echo "Cleaning up existing containers and images..."
+    verbose_echo "Using compose command: $COMPOSE_CMD"
     
     # Stop and remove container if running
     if $COMPOSE_CMD ps -q magentic-desktop | grep -q .; then
         echo "Stopping running container..."
+        verbose_echo "Executing: $COMPOSE_CMD down"
         $COMPOSE_CMD down
+    else
+        verbose_echo "No running container found"
     fi
     
     # Remove container if it exists (even if stopped)
     if docker ps -a --format "table {{.Names}}" | grep -q "magentic-desktop"; then
         echo "Removing existing container..."
+        verbose_echo "Executing: docker rm -f magentic-desktop"
         docker rm -f magentic-desktop 2>/dev/null || true
+    else
+        verbose_echo "No existing container found"
     fi
     
     # Remove the image to force rebuild
     if docker images --format "table {{.Repository}}:{{.Tag}}" | grep -q "magentic-desktop"; then
         echo "Removing existing image..."
+        verbose_echo "Executing: docker rmi -f magentic-desktop"
         docker rmi -f magentic-desktop 2>/dev/null || true
+    else
+        verbose_echo "No existing image found"
     fi
     
     echo "Cleanup completed!"
 }
 
 # Parse command
-case "${1:-up}" in
+case "$COMMAND" in
     "up")
         cleanup_and_rebuild
         echo ""
         echo "Building and starting magentic-desktop with Docker Compose..."
-        $COMPOSE_CMD up --build -d
+        verbose_echo "Executing: $COMPOSE_CMD up --build -d"
+        
+        # Start the container and capture exit code
+        if ! $COMPOSE_CMD up --build -d; then
+            echo "ERROR: Failed to start container!"
+            echo "Aborting script execution."
+            exit 1
+        fi
+        
+        # Wait a moment for container to fully start
+        echo "Waiting for container to start..."
+        sleep 3
+        
+        # Verify container is actually running
+        verbose_echo "Checking container status..."
+        if ! $COMPOSE_CMD ps -q magentic-desktop | grep -q .; then
+            echo "ERROR: Container failed to start or is not running!"
+            echo "Container status:"
+            $COMPOSE_CMD ps
+            echo ""
+            echo "Container logs:"
+            $COMPOSE_CMD logs
+            echo ""
+            echo "Aborting script execution."
+            exit 1
+        fi
+        
+        # Check if container is healthy (running state)
+        CONTAINER_STATUS=$(docker ps --filter "name=magentic-desktop" --format "{{.Status}}" | head -1)
+        if [[ ! "$CONTAINER_STATUS" =~ "Up" ]]; then
+            echo "ERROR: Container is not in running state! Status: $CONTAINER_STATUS"
+            echo "Container status:"
+            $COMPOSE_CMD ps
+            echo ""
+            echo "Container logs:"
+            $COMPOSE_CMD logs
+            echo ""
+            echo "Aborting script execution."
+            exit 1
+        fi
+        
         echo ""
-        echo "Container started! Following logs..."
+        echo "✓ Container successfully started and is running!"
         echo "Press Ctrl+C to stop following logs (container will continue running)"
         echo "To connect via RDP, use localhost:3389"
+        verbose_echo "Container ports: 3389 (RDP), 8080 (VS Code)"
+        verbose_echo "Container status: $CONTAINER_STATUS"
         echo ""
+        verbose_echo "Executing: $COMPOSE_CMD logs -f"
         $COMPOSE_CMD logs -f
         ;;
     "down")
         echo "Stopping magentic-desktop container..."
+        verbose_echo "Executing: $COMPOSE_CMD down"
         $COMPOSE_CMD down
         echo "Container stopped and removed."
         ;;
     "logs")
         echo "Showing magentic-desktop logs..."
+        verbose_echo "Executing: $COMPOSE_CMD logs -f"
         $COMPOSE_CMD logs -f
         ;;
     "restart")
         echo "Restarting magentic-desktop container..."
-        $COMPOSE_CMD restart
-        echo "Container restarted. Following logs..."
+        verbose_echo "Executing: $COMPOSE_CMD restart"
+        
+        # Restart the container and capture exit code
+        if ! $COMPOSE_CMD restart; then
+            echo "ERROR: Failed to restart container!"
+            echo "Aborting script execution."
+            exit 1
+        fi
+        
+        # Wait a moment for container to fully start
+        echo "Waiting for container to restart..."
+        sleep 3
+        
+        # Verify container is actually running
+        verbose_echo "Checking container status..."
+        if ! $COMPOSE_CMD ps -q magentic-desktop | grep -q .; then
+            echo "ERROR: Container failed to restart or is not running!"
+            echo "Container status:"
+            $COMPOSE_CMD ps
+            echo ""
+            echo "Container logs:"
+            $COMPOSE_CMD logs
+            echo ""
+            echo "Aborting script execution."
+            exit 1
+        fi
+        
+        # Check if container is healthy (running state)
+        CONTAINER_STATUS=$(docker ps --filter "name=magentic-desktop" --format "{{.Status}}" | head -1)
+        if [[ ! "$CONTAINER_STATUS" =~ "Up" ]]; then
+            echo "ERROR: Container is not in running state! Status: $CONTAINER_STATUS"
+            echo "Container status:"
+            $COMPOSE_CMD ps
+            echo ""
+            echo "Container logs:"
+            $COMPOSE_CMD logs
+            echo ""
+            echo "Aborting script execution."
+            exit 1
+        fi
+        
+        echo "✓ Container successfully restarted and is running!"
+        echo "Following logs..."
+        verbose_echo "Container status: $CONTAINER_STATUS"
+        verbose_echo "Executing: $COMPOSE_CMD logs -f"
         $COMPOSE_CMD logs -f
         ;;
     "build")
         cleanup_and_rebuild
         echo ""
         echo "Building magentic-desktop image..."
+        verbose_echo "Executing: $COMPOSE_CMD build --no-cache"
         $COMPOSE_CMD build --no-cache
         echo "Build completed!"
         ;;
@@ -97,13 +246,16 @@ case "${1:-up}" in
         ;;
     "status")
         echo "Container status:"
+        verbose_echo "Executing: $COMPOSE_CMD ps"
         $COMPOSE_CMD ps
+        verbose_echo "Executing: docker ps -a (all containers)"
+        docker ps -a
         ;;
     "help"|"-h"|"--help")
         show_usage
         ;;
     *)
-        echo "Unknown command: $1"
+        echo "Unknown command: $COMMAND"
         echo ""
         show_usage
         exit 1

@@ -14,20 +14,20 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y lubuntu-desktop && \
 # Copy image directory as a unit
 COPY image/ /tmp/image/
 
-# Install Firefox and VS Code configurations
-RUN cp /tmp/image/config/firefox/packages.mozilla.org.asc /etc/apt/keyrings/ && \
-    cp /tmp/image/config/firefox/mozilla.sources /etc/apt/sources.list.d/ && \
-    cp /tmp/image/config/firefox/mozilla /etc/apt/preferences.d/ && \
-    cp /tmp/image/config/vscode/microsoft.asc /etc/apt/keyrings/ && \
-    cp /tmp/image/config/vscode/vscode.sources /etc/apt/sources.list.d/ && \
-    cp /tmp/image/config/vscode/vscode /etc/apt/preferences.d/
-
-# Update and install both applications
-RUN apt-get -y update && apt-get -y --allow-downgrades install firefox code
-
 # Copy and setup scripts
-RUN cp /tmp/image/scripts/* /usr/local/bin/ && \
-    chmod +x /usr/local/bin/launch-vscode.sh /usr/local/bin/add_coder /usr/local/bin/add_user /usr/local/bin/entrypoint.sh
+RUN chmod +x /tmp/image/scripts/* && \
+    mv /tmp/image/scripts/* /usr/local/bin/
+
+# Install Firefox and VS Code configurations
+RUN mv /tmp/image/config/firefox/packages.mozilla.org.asc /etc/apt/keyrings/ && \
+    mv /tmp/image/config/firefox/mozilla.sources /etc/apt/sources.list.d/ && \
+    mv /tmp/image/config/firefox/mozilla /etc/apt/preferences.d/ && \
+    mv /tmp/image/config/vscode/microsoft.asc /etc/apt/keyrings/ && \
+    mv /tmp/image/config/vscode/vscode.sources /etc/apt/sources.list.d/ && \
+    mv /tmp/image/config/vscode/vscode /etc/apt/preferences.d/
+
+# Update package lists and install both applications
+RUN apt-get -y update && apt-get -y --allow-downgrades install firefox code
 
 # Clean up temporary image directory
 RUN rm -rf /tmp/image
