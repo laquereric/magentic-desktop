@@ -32,9 +32,11 @@ RUN apt-get -y update && apt-get -y --allow-downgrades install firefox code git-
 # Clean up temporary image directory
 RUN rm -rf /tmp/image
 
-# Create Firefox state directory for persistent profiles
-RUN mkdir -p /home/firefox-state && \
-    chmod 755 /home/firefox-state
+# Create Firefox state directories for persistent profiles
+RUN mkdir -p /home/testuser/firefox-state && \
+    mkdir -p /home/coder/firefox-state && \
+    chmod 755 /home/testuser/firefox-state && \
+    chmod 755 /home/coder/firefox-state
 
 # Expose ports
 EXPOSE 3389 8080

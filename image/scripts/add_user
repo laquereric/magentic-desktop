@@ -252,7 +252,7 @@ echo "Opening Firefox to magenticmarket.ai..."
 export DISPLAY=:0
 
 # Set Firefox profile directory
-FIREFOX_PROFILE_DIR="/home/firefox-state/firefox-profiles/$USERNAME"
+FIREFOX_PROFILE_DIR="/home/$USERNAME/firefox-state"
 mkdir -p "\$FIREFOX_PROFILE_DIR"
 
 # Start Firefox with persistent profile and magenticmarket.ai

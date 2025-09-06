@@ -11,7 +11,8 @@ services:
       - DISPLAY=:0
             volumes:
               - /tmp/.X11-unix:/tmp/.X11-unix:rw
-              - firefox-state:/home/firefox-state
+              - testuser-firefox-state:/home/testuser/firefox-state
+              - coder-firefox-state:/home/coder/firefox-state
     restart: unless-stopped
     stdin_open: true
     tty: true
@@ -23,5 +24,7 @@ networks:
     driver: bridge
 
 volumes:
-  firefox-state:
+  testuser-firefox-state:
+    driver: local
+  coder-firefox-state:
     driver: local
