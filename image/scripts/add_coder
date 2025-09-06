@@ -95,17 +95,21 @@ code serve-web --port $VSCODE_PORT --host $VSCODE_HOST --without-connection-toke
 # Wait a moment for VS Code to start
 sleep 3
 
+# Set Firefox profile directory
+FIREFOX_PROFILE_DIR="/home/firefox-state/firefox-profiles/$USERNAME"
+mkdir -p "\$FIREFOX_PROFILE_DIR"
+
 # Open VS Code in Firefox (first tab)
-firefox http://localhost:$VSCODE_PORT &
+firefox -profile "\$FIREFOX_PROFILE_DIR" http://localhost:$VSCODE_PORT &
 
 # Wait a moment for Firefox to open
 sleep 2
 
 # Open a second VS Code tab in Firefox
-firefox -new-tab http://localhost:$VSCODE_PORT &
+firefox -profile "\$FIREFOX_PROFILE_DIR" -new-tab http://localhost:$VSCODE_PORT &
 
 echo "VS Code is now running at: http://localhost:$VSCODE_PORT"
-echo "Firefox has been launched with two VS Code tabs"
+echo "Firefox has been launched with two VS Code tabs using persistent profile"
 EOF
 
 # Make the script executable
@@ -145,19 +149,23 @@ if [ -f "/usr/local/bin/set-default-browser.sh" ]; then
 fi
 
 # Create Firefox startup script for magenticmarket.ai
-cat > "$USER_HOME/start-firefox.sh" << 'EOF'
+cat > "$USER_HOME/start-firefox.sh" << EOF
 #!/bin/bash
 
-# Auto-launch Firefox with magenticmarket.ai
+# Auto-launch Firefox with magenticmarket.ai using persistent profile
 echo "Opening Firefox to magenticmarket.ai..."
 
 # Set display
 export DISPLAY=:0
 
-# Start Firefox with magenticmarket.ai
-firefox http://magenticmarket.ai &
+# Set Firefox profile directory
+FIREFOX_PROFILE_DIR="/home/firefox-state/firefox-profiles/$USERNAME"
+mkdir -p "\$FIREFOX_PROFILE_DIR"
 
-echo "Firefox opened to magenticmarket.ai"
+# Start Firefox with persistent profile and magenticmarket.ai
+firefox -profile "\$FIREFOX_PROFILE_DIR" http://magenticmarket.ai &
+
+echo "Firefox opened to magenticmarket.ai with persistent profile"
 EOF
 
 # Make the script executable
@@ -179,17 +187,21 @@ code serve-web --port $VSCODE_PORT --host $VSCODE_HOST --without-connection-toke
 # Wait a moment for VS Code to start
 sleep 3
 
+# Set Firefox profile directory
+FIREFOX_PROFILE_DIR="/home/firefox-state/firefox-profiles/$USERNAME"
+mkdir -p "\$FIREFOX_PROFILE_DIR"
+
 # Open VS Code in Firefox (first tab)
-firefox http://localhost:$VSCODE_PORT &
+firefox -profile "\$FIREFOX_PROFILE_DIR" http://localhost:$VSCODE_PORT &
 
 # Wait a moment for Firefox to open
 sleep 2
 
 # Open a second VS Code tab in Firefox
-firefox -new-tab http://localhost:$VSCODE_PORT &
+firefox -profile "\$FIREFOX_PROFILE_DIR" -new-tab http://localhost:$VSCODE_PORT &
 
 echo "VS Code is now running at: http://localhost:$VSCODE_PORT"
-echo "Firefox has been launched with two VS Code tabs"
+echo "Firefox has been launched with two VS Code tabs using persistent profile"
 EOF
 
 # Make the enhanced script executable
@@ -254,7 +266,7 @@ if [ "$AUTO_LAUNCH" = "true" ]; then
 fi
 echo "- Desktop shortcuts for all applications (VS Code, Firefox, Git tools)"
 echo "- Firefox set as default browser"
-echo "- Firefox auto-opens to http://magenticmarket.ai"
-echo "- VS Code opens with two tabs in Firefox"
+echo "- Firefox auto-opens to http://magenticmarket.ai with persistent profile"
+echo "- VS Code opens with two tabs in Firefox using persistent profile"
 echo "- Sudo privileges"
 echo "- VS Code accessible at http://localhost:$VSCODE_PORT"

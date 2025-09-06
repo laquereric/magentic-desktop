@@ -9,8 +9,9 @@ services:
       - "8080:8080"
     environment:
       - DISPLAY=:0
-    volumes:
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+            volumes:
+              - /tmp/.X11-unix:/tmp/.X11-unix:rw
+              - firefox-state:/home/firefox-state
     restart: unless-stopped
     stdin_open: true
     tty: true
@@ -20,3 +21,7 @@ services:
 networks:
   magentic-network:
     driver: bridge
+
+volumes:
+  firefox-state:
+    driver: local

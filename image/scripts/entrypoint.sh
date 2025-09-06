@@ -55,6 +55,12 @@ echo "  Test Sudo: $TEST_SUDO"
 echo "  Skip Test User: $SKIP_TEST_USER"
 echo ""
 
+# Configure Firefox persistent profiles
+echo "Configuring Firefox persistent profiles..."
+if [ -f "/usr/local/bin/configure-firefox-profile.sh" ]; then
+    /usr/local/bin/configure-firefox-profile.sh
+fi
+
 # Start XRDP service
 echo "Starting XRDP service..."
 service xrdp start
