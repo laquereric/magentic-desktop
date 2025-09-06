@@ -24,13 +24,17 @@ COPY  config/vscode/vscode /etc/apt/preferences.d/vscode
 # Update and install both applications
 RUN apt-get -y update && apt-get -y --allow-downgrades install firefox code
 
+# Copy launch script
+COPY image/scripts/launch-vscode.sh /usr/local/bin/launch-vscode.sh
+RUN chmod +x /usr/local/bin/launch-vscode.sh
+
 # Create a user and add to sudo group
 RUN useradd -m testuser && \
     echo "testuser:1234" | chpasswd && \
     usermod -aG sudo testuser
 
-# Expose port 3389
-EXPOSE 3389
+# Expose ports
+EXPOSE 3389 8080
 
 # Start services
 

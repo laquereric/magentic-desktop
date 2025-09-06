@@ -6,6 +6,7 @@ services:
     container_name: magentic-desktop
     ports:
       - "3389:3389"
+      - "8080:8080"
     environment:
       - DISPLAY=:0
     volumes:
