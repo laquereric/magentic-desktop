@@ -2,7 +2,8 @@ FROM ubuntu:latest
 
 # Update and install desktop environment and XRDP
 RUN apt-get update && \
-    apt-get install -y wget
+    apt-get install -y wget && \
+    apt-get install -y x11-xkb-utils 
 
 RUN install -d -m 0755 /etc/apt/keyrings
 
@@ -28,6 +29,13 @@ RUN mv /tmp/image/config/firefox/packages.mozilla.org.asc /etc/apt/keyrings/ && 
 
 # Update package lists and install applications
 RUN apt-get -y update && apt-get -y --allow-downgrades install firefox code git-gui gitk meld
+
+# Configure Mac keyboard support (moved to runtime via entrypoint script)
+RUN echo 'XKBMODEL="pc105"' > /etc/default/keyboard && \
+    echo 'XKBLAYOUT="us"' >> /etc/default/keyboard && \
+    echo 'XKBVARIANT="mac"' >> /etc/default/keyboard && \
+    echo 'XKBOPTIONS="altwin:swap_lalt_lwin"' >> /etc/default/keyboard && \
+    echo 'BACKSPACE="guess"' >> /etc/default/keyboard
 
 # Clean up temporary image directory
 RUN rm -rf /tmp/image

@@ -7,6 +7,16 @@ set -e  # Exit on any error
 
 echo "Starting magentic-desktop container initialization..."
 
+# Fix Mac keyboard layout for desktop environment
+echo "Configuring Mac keyboard layout..."
+if command -v setxkbmap >/dev/null 2>&1; then
+    # Set Mac keyboard layout
+    setxkbmap -layout us -variant mac -option altwin:swap_lalt_lwin 2>/dev/null || true
+    echo "Mac keyboard layout configured"
+else
+    echo "setxkbmap not available, keyboard layout will be set when desktop starts"
+fi
+
 # Function to show usage
 show_usage() {
     echo "Usage: docker run [OPTIONS] magentic-desktop [COMMAND]"
@@ -60,6 +70,31 @@ echo "Configuring Firefox persistent profiles..."
 if [ -f "/usr/local/bin/configure-firefox-profile.sh" ]; then
     /usr/local/bin/configure-firefox-profile.sh
 fi
+
+# Create Mac keyboard autostart script
+echo "Creating Mac keyboard autostart script..."
+cat > /usr/local/bin/fix-mac-keyboard.sh << 'EOF'
+#!/bin/bash
+# Fix Mac keyboard layout on desktop startup
+sleep 2  # Wait for desktop to fully load
+if [ -n "$DISPLAY" ]; then
+    setxkbmap -layout us -variant mac -option altwin:swap_lalt_lwin 2>/dev/null || true
+fi
+EOF
+chmod +x /usr/local/bin/fix-mac-keyboard.sh
+
+# Create autostart entry for keyboard fix
+mkdir -p /etc/xdg/autostart
+cat > /etc/xdg/autostart/fix-mac-keyboard.desktop << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=Fix Mac Keyboard
+Comment=Fix Mac keyboard layout on startup
+Exec=/usr/local/bin/fix-mac-keyboard.sh
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+EOF
 
 # Start XRDP service
 echo "Starting XRDP service..."
