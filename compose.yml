@@ -1,0 +1,21 @@
+services:
+  magentic-desktop:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: magentic-desktop
+    ports:
+      - "3389:3389"
+    environment:
+      - DISPLAY=:0
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    networks:
+      - magentic-network
+
+networks:
+  magentic-network:
+    driver: bridge

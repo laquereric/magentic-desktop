@@ -1,2 +1,16 @@
 #!/bin/bash
-docker run -it -p 3389:3389 --name magentic-desktop magentic-desktop
+echo "Starting magentic-desktop container..."
+
+# Remove existing container if it exists
+docker rm -f magentic-desktop 2>/dev/null || true
+
+# Run the container in detached mode
+docker run -d -p 3389:3389 --name magentic-desktop magentic-desktop
+
+echo "Container started! Following logs..."
+echo "Press Ctrl+C to stop following logs (container will continue running)"
+echo "To connect via RDP, use localhost:3389"
+echo ""
+
+# Follow the logs
+docker logs -f magentic-desktop

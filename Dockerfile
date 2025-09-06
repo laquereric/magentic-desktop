@@ -1,27 +1,27 @@
 FROM ubuntu:latest
 
 # Update and install desktop environment and XRDP
-RUN apt update && \
-    DEBIAN_FRONTEND=noninteractive apt install -y lubuntu-desktop && \
-    apt install -y xrdp && \
-    adduser xrdp ssl-cert
-
-RUN apt-get install wget
+RUN apt-get update && \
+    apt-get install -y wget
 
 RUN install -d -m 0755 /etc/apt/keyrings
 
-RUN wget -q https://packages.mozilla.org/apt/repo-signing-key.gpg -O- | sudo tee /etc/apt/keyrings/packages.mozilla.org.asc > /dev/null
+# Install Desktop
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y lubuntu-desktop && \
+    apt-get install -y xrdp && \
+    adduser xrdp ssl-cert
 
-COPY  image/etc/apt/keyrings/microsoft.asc /etc/apt/keyrings/microsoft.asc
+# Install Firefox
+COPY  config/firefox/packages.mozilla.org.asc /etc/apt/keyrings/packages.mozilla.org.asc
+COPY  config/firefox/mozilla.sources /etc/apt/sources.list.d/mozilla.sources
+COPY  config/firefox/mozilla /etc/apt/preferences.d/mozilla
 
-COPY  image/etc/apt/sources.list.d/mozilla.sources /etc/apt/sources.list.d/mozilla.sources
+# Install VS Code
+COPY  config/vscode/microsoft.asc /etc/apt/keyrings/microsoft.asc
+COPY  config/vscode/vscode.sources /etc/apt/sources.list.d/vscode.sources
+COPY  config/vscode/vscode /etc/apt/preferences.d/vscode
 
-COPY  image/etc/apt/sources.list.d/vscode.sources /etc/apt/sources.list.d/vscode.sources
-
-COPY  image/etc/apt/preferences.d/mozilla /etc/apt/preferences.d/mozilla
-
-COPY  image/etc/apt/preferences.d/vscode /etc/apt/preferences.d/vscode
-
+# Update and install both applications
 RUN apt-get -y update && apt-get -y --allow-downgrades install firefox code
 
 # Create a user and add to sudo group
@@ -34,5 +34,4 @@ EXPOSE 3389
 
 # Start services
 
-CMD service xrdp start && \
-    /bin/bash
+CMD ["/bin/bash", "-c", "service xrdp start && /bin/bash"]

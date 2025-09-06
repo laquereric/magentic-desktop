@@ -1,0 +1,111 @@
+#!/bin/bash
+
+# Function to show usage
+show_usage() {
+    echo "Usage: $0 [COMMAND]"
+    echo ""
+    echo "Commands:"
+    echo "  up       - Start the magentic-desktop container (with cleanup)"
+    echo "  down     - Stop and remove the container"
+    echo "  logs     - Show container logs"
+    echo "  restart  - Restart the container"
+    echo "  build    - Build the image (with cleanup)"
+    echo "  clean    - Clean up containers and images only"
+    echo "  status   - Show container status"
+    echo ""
+    echo "Examples:"
+    echo "  $0 up     # Start container and follow logs"
+    echo "  $0 logs   # Show logs only"
+    echo "  $0 down   # Stop container"
+}
+
+# Check if docker-compose is available
+if ! command -v docker-compose &> /dev/null && ! command -v docker &> /dev/null; then
+    echo "Error: Docker is not installed or not in PATH"
+    exit 1
+fi
+
+# Use docker compose (newer) or docker-compose (older)
+COMPOSE_CMD="docker compose"
+if ! docker compose version &> /dev/null; then
+    COMPOSE_CMD="docker-compose"
+fi
+
+# Function to cleanup existing containers and images
+cleanup_and_rebuild() {
+    echo "Cleaning up existing containers and images..."
+    
+    # Stop and remove container if running
+    if $COMPOSE_CMD ps -q magentic-desktop | grep -q .; then
+        echo "Stopping running container..."
+        $COMPOSE_CMD down
+    fi
+    
+    # Remove container if it exists (even if stopped)
+    if docker ps -a --format "table {{.Names}}" | grep -q "magentic-desktop"; then
+        echo "Removing existing container..."
+        docker rm -f magentic-desktop 2>/dev/null || true
+    fi
+    
+    # Remove the image to force rebuild
+    if docker images --format "table {{.Repository}}:{{.Tag}}" | grep -q "magentic-desktop"; then
+        echo "Removing existing image..."
+        docker rmi -f magentic-desktop 2>/dev/null || true
+    fi
+    
+    echo "Cleanup completed!"
+}
+
+# Parse command
+case "${1:-up}" in
+    "up")
+        cleanup_and_rebuild
+        echo ""
+        echo "Building and starting magentic-desktop with Docker Compose..."
+        $COMPOSE_CMD up --build -d
+        echo ""
+        echo "Container started! Following logs..."
+        echo "Press Ctrl+C to stop following logs (container will continue running)"
+        echo "To connect via RDP, use localhost:3389"
+        echo ""
+        $COMPOSE_CMD logs -f
+        ;;
+    "down")
+        echo "Stopping magentic-desktop container..."
+        $COMPOSE_CMD down
+        echo "Container stopped and removed."
+        ;;
+    "logs")
+        echo "Showing magentic-desktop logs..."
+        $COMPOSE_CMD logs -f
+        ;;
+    "restart")
+        echo "Restarting magentic-desktop container..."
+        $COMPOSE_CMD restart
+        echo "Container restarted. Following logs..."
+        $COMPOSE_CMD logs -f
+        ;;
+    "build")
+        cleanup_and_rebuild
+        echo ""
+        echo "Building magentic-desktop image..."
+        $COMPOSE_CMD build --no-cache
+        echo "Build completed!"
+        ;;
+    "clean")
+        cleanup_and_rebuild
+        ;;
+    "status")
+        echo "Container status:"
+        $COMPOSE_CMD ps
+        ;;
+    "help"|"-h"|"--help")
+        show_usage
+        ;;
+    *)
+        echo "Unknown command: $1"
+        echo ""
+        show_usage
+        exit 1
+        ;;
+esac
