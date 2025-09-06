@@ -1,0 +1,96 @@
+#!/bin/bash
+
+# Script to configure bashrc for Firefox auto-startup
+# This script adds Firefox startup to user's bashrc
+
+set -e  # Exit on any error
+
+echo "Setting up Firefox auto-startup in bashrc..."
+
+# Function to show usage
+show_usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  --user USERNAME     Configure for specific user (default: current user)"
+    echo "  --disable           Remove Firefox startup from bashrc"
+    echo "  --help              Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                  # Configure for current user"
+    echo "  $0 --user testuser  # Configure for testuser"
+    echo "  $0 --disable        # Remove Firefox startup"
+}
+
+# Default values
+TARGET_USER=""
+DISABLE="false"
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --user)
+            TARGET_USER="$2"
+            shift 2
+            ;;
+        --disable)
+            DISABLE="true"
+            shift
+            ;;
+        --help|-h)
+            show_usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            show_usage
+            exit 1
+            ;;
+    esac
+done
+
+# Determine target user
+if [ -z "$TARGET_USER" ]; then
+    TARGET_USER=$(whoami)
+fi
+
+BASHRC_FILE="/home/$TARGET_USER/.bashrc"
+
+echo "Configuring Firefox startup for user: $TARGET_USER"
+echo "Bashrc file: $BASHRC_FILE"
+
+# Create .bashrc if it doesn't exist
+if [ ! -f "$BASHRC_FILE" ]; then
+    touch "$BASHRC_FILE"
+    chown "$TARGET_USER:$TARGET_USER" "$BASHRC_FILE"
+fi
+
+if [ "$DISABLE" = "true" ]; then
+    # Remove Firefox startup configuration
+    echo "Removing Firefox startup from bashrc..."
+    sed -i '/# Firefox auto-startup/,/^fi$/d' "$BASHRC_FILE" 2>/dev/null || true
+    echo "Firefox startup removed from bashrc"
+else
+    # Add Firefox startup configuration
+    echo "Adding Firefox startup to bashrc..."
+    
+    # Remove any existing Firefox startup configuration first
+    sed -i '/# Firefox auto-startup/,/^fi$/d' "$BASHRC_FILE" 2>/dev/null || true
+    
+    # Add new Firefox startup configuration
+    cat >> "$BASHRC_FILE" << 'EOF'
+
+# Firefox auto-startup
+if [ -n "$DISPLAY" ] && [ -z "$FIREFOX_STARTED" ]; then
+    export FIREFOX_STARTED=1
+    # Start Firefox in background after a short delay
+    (sleep 5 && start-firefox-magentic.sh) &
+fi
+EOF
+    
+    # Set proper ownership
+    chown "$TARGET_USER:$TARGET_USER" "$BASHRC_FILE" 2>/dev/null || true
+    
+    echo "Firefox startup added to bashrc"
+    echo "Firefox will auto-start when user logs in with a display"
+fi
