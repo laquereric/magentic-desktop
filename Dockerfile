@@ -12,18 +12,17 @@ RUN install -d -m 0755 /etc/apt/keyrings
 
 RUN wget -q https://packages.mozilla.org/apt/repo-signing-key.gpg -O- | sudo tee /etc/apt/keyrings/packages.mozilla.org.asc > /dev/null
 
+COPY  image/etc/apt/keyrings/microsoft.asc /etc/apt/keyrings/microsoft.asc
+
 COPY  image/etc/apt/sources.list.d/mozilla.sources /etc/apt/sources.list.d/mozilla.sources
+
+COPY  image/etc/apt/sources.list.d/vscode.sources /etc/apt/sources.list.d/vscode.sources
 
 COPY  image/etc/apt/preferences.d/mozilla /etc/apt/preferences.d/mozilla
 
-RUN apt-get -y update && apt-get -y --allow-downgrades install firefox
+COPY  image/etc/apt/preferences.d/vscode /etc/apt/preferences.d/vscode
 
-# Install VS Code
-RUN wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg && \
-    install -o root -g root -m 644 packages.microsoft.gpg /etc/apt/trusted.gpg.d/ && \
-    sh -c 'echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/trusted.gpg.d/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list' && \
-    apt-get update && \
-    apt-get install -y code
+RUN apt-get -y update && apt-get -y --allow-downgrades install firefox code
 
 # Create a user and add to sudo group
 RUN useradd -m testuser && \
