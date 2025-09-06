@@ -134,19 +134,26 @@ fi
 # Create a desktop shortcut
 # Desktop shortcuts will be created by setup-desktop-shortcuts.sh
 
-# Set proper ownership
-chown -R "$USERNAME:$USERNAME" "$USER_HOME"
+# Set proper ownership (verify user exists first)
+if id "$USERNAME" &>/dev/null; then
+    chown -R "$USERNAME:$USERNAME" "$USER_HOME"
+else
+    echo "Error: User $USERNAME was not created properly"
+    exit 1
+fi
 
 # Setup desktop shortcuts
 if [ -f "/usr/local/bin/setup-desktop-shortcuts.sh" ]; then
     /usr/local/bin/setup-desktop-shortcuts.sh "$USER_HOME"
-    chown -R "$USERNAME:$USERNAME" "$USER_HOME/Desktop"
+    if id "$USERNAME" &>/dev/null; then
+        chown -R "$USERNAME:$USERNAME" "$USER_HOME/Desktop"
+    else
+        echo "Error: User $USERNAME does not exist when setting desktop ownership"
+        exit 1
+    fi
 fi
 
-# Set Firefox as default browser
-if [ -f "/usr/local/bin/set-default-browser.sh" ]; then
-    /usr/local/bin/set-default-browser.sh
-fi
+# Note: Firefox default browser setup is handled by entrypoint.sh after all users are created
 
 # Create Firefox startup script for magenticmarket.ai
 cat > "$USER_HOME/start-firefox.sh" << EOF
@@ -250,7 +257,12 @@ echo "Firefox opened to: http://magenticmarket.ai"
 EOF
 
 # Set ownership of .bashrc
-chown "$USERNAME:$USERNAME" "$USER_HOME/.bashrc"
+if id "$USERNAME" &>/dev/null; then
+    chown "$USERNAME:$USERNAME" "$USER_HOME/.bashrc"
+else
+    echo "Error: User $USERNAME does not exist when setting .bashrc ownership"
+    exit 1
+fi
 
 echo "User created successfully!"
 echo "Username: $USERNAME"

@@ -83,8 +83,12 @@ EOF
     # Create mimeapps.list in .config as well (some systems use this location)
     cp "$USER_HOME/.local/share/applications/mimeapps.list" "$USER_HOME/.config/mimeapps.list"
     
-    # Set proper ownership
-    chown -R "$USERNAME:$USERNAME" "$USER_HOME/.local" "$USER_HOME/.config"
+    # Set proper ownership (only if user exists)
+    if id "$USERNAME" &>/dev/null; then
+        chown -R "$USERNAME:$USERNAME" "$USER_HOME/.local" "$USER_HOME/.config"
+    else
+        echo "Warning: User $USERNAME does not exist, skipping ownership setup"
+    fi
     
     echo "✓ Default browser set to Firefox for user: $USERNAME"
 }

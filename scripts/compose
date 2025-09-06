@@ -9,7 +9,8 @@ show_usage() {
     echo "  -h, --help       Show this help message"
     echo ""
     echo "Commands:"
-    echo "  up       - Start the magentic-desktop container (with cleanup)"
+    echo "  up       - Start the magentic-desktop container (reuses existing image)"
+    echo "  rebuild  - Rebuild image and start container (with cleanup)"
     echo "  down     - Stop and remove the container"
     echo "  logs     - Show container logs"
     echo "  restart  - Restart the container"
@@ -18,7 +19,8 @@ show_usage() {
     echo "  status   - Show container status"
     echo ""
     echo "Examples:"
-    echo "  $0 up              # Start container and follow logs"
+    echo "  $0 up              # Start container and follow logs (reuses existing image)"
+    echo "  $0 rebuild         # Rebuild image and start container"
     echo "  $0 -v up           # Start container with verbose output"
     echo "  $0 logs            # Show logs only"
     echo "  $0 --verbose down  # Stop container with verbose output"
@@ -81,6 +83,30 @@ verbose_echo() {
     fi
 }
 
+# Detailed abort function
+abort_with_reason() {
+    local reason="$1"
+    local context="$2"
+    local exit_code="${3:-1}"
+    
+    echo ""
+    echo "❌ OPERATION FAILED"
+    echo "Reason: $reason"
+    if [ -n "$context" ]; then
+        echo "Context: $context"
+    fi
+    echo ""
+    echo "Troubleshooting tips:"
+    echo "  - Check if Docker is running: docker ps"
+    echo "  - Check container logs: $0 logs"
+    echo "  - Check container status: $0 status"
+    echo "  - Try rebuilding: $0 rebuild"
+    echo "  - Clean up and retry: $0 clean"
+    echo ""
+    echo "Aborting script execution."
+    exit $exit_code
+}
+
 # Function to cleanup existing containers and images
 cleanup_and_rebuild() {
     echo "Cleaning up existing containers and images..."
@@ -90,18 +116,38 @@ cleanup_and_rebuild() {
     if $COMPOSE_CMD ps -q magentic-desktop | grep -q .; then
         echo "Stopping running container..."
         verbose_echo "Executing: $COMPOSE_CMD down"
-        $COMPOSE_CMD down
+        if ! $COMPOSE_CMD down; then
+            abort_with_reason "Failed to stop running container" "The 'docker compose down' command returned an error during cleanup"
+        fi
+        
+        # Wait a moment for container to fully stop
+        echo "Waiting for container to stop..."
+        sleep 2
+        
+        # Verify container is actually stopped
+        verbose_echo "Checking container status..."
+        if $COMPOSE_CMD ps -q magentic-desktop | grep -q .; then
+            echo "Container status:"
+            $COMPOSE_CMD ps
+            echo ""
+            abort_with_reason "Container failed to stop properly" "Container is still running after 'docker compose down' command during cleanup"
+        fi
+        
+        echo "Container stopped successfully."
     else
-        verbose_echo "No running container found"
+        verbose_echo "No running magentic-desktop container found"
     fi
     
     # Remove container if it exists (even if stopped)
     if docker ps -a --format "table {{.Names}}" | grep -q "magentic-desktop"; then
         echo "Removing existing container..."
         verbose_echo "Executing: docker rm -f magentic-desktop"
-        docker rm -f magentic-desktop 2>/dev/null || true
+        if ! docker rm -f magentic-desktop; then
+            abort_with_reason "Failed to remove existing container" "The 'docker rm -f magentic-desktop' command returned an error"
+        fi
+        echo "Container removed successfully."
     else
-        verbose_echo "No existing container found"
+        verbose_echo "No existing magentic-desktop container found"
     fi
     
     # Remove the image to force rebuild
@@ -110,7 +156,7 @@ cleanup_and_rebuild() {
         verbose_echo "Executing: docker rmi -f magentic-desktop"
         docker rmi -f magentic-desktop 2>/dev/null || true
     else
-        verbose_echo "No existing image found"
+        verbose_echo "No existing magentic-desktop image found"
     fi
     
     echo "Cleanup completed!"
@@ -119,6 +165,70 @@ cleanup_and_rebuild() {
 # Parse command
 case "$COMMAND" in
     "up")
+        # Only stop existing container, don't rebuild image
+        if $COMPOSE_CMD ps -q magentic-desktop | grep -q .; then
+            echo "Stopping existing container..."
+            verbose_echo "Executing: $COMPOSE_CMD down"
+            if ! $COMPOSE_CMD down; then
+                abort_with_reason "Failed to stop existing container" "The 'docker compose down' command returned an error during 'up' operation"
+            fi
+            echo "Container stopped successfully."
+        else
+            verbose_echo "No running magentic-desktop container found"
+        fi
+        
+        echo ""
+        echo "Starting magentic-desktop with Docker Compose..."
+        verbose_echo "Executing: $COMPOSE_CMD up -d"
+        
+        # Start the container and capture exit code
+        if ! $COMPOSE_CMD up -d; then
+            abort_with_reason "Failed to start container" "The 'docker compose up -d' command returned an error"
+        fi
+        
+        # Wait a moment for container to fully start
+        echo "Waiting for container to start..."
+        sleep 3
+        
+        # Verify container is actually running
+        verbose_echo "Checking container status..."
+        if ! $COMPOSE_CMD ps -q magentic-desktop | grep -q .; then
+            echo "ERROR: Container failed to start or is not running!"
+            echo "Container status:"
+            $COMPOSE_CMD ps
+            echo ""
+            echo "Container logs:"
+            $COMPOSE_CMD logs
+            echo ""
+            echo "Aborting script execution."
+            exit 1
+        fi
+        
+        # Check if container is healthy (running state)
+        CONTAINER_STATUS=$(docker ps --filter "name=magentic-desktop" --format "{{.Status}}" | head -1)
+        if [[ ! "$CONTAINER_STATUS" =~ "Up" ]]; then
+            echo "ERROR: Container is not in running state! Status: $CONTAINER_STATUS"
+            echo "Container status:"
+            $COMPOSE_CMD ps
+            echo ""
+            echo "Container logs:"
+            $COMPOSE_CMD logs
+            echo ""
+            echo "Aborting script execution."
+            exit 1
+        fi
+        
+        echo ""
+        echo "✓ Container successfully started and is running!"
+        echo "Press Ctrl+C to stop following logs (container will continue running)"
+        echo "To connect via RDP, use localhost:3389"
+        verbose_echo "Container ports: 3389 (RDP), 8080 (VS Code)"
+        verbose_echo "Container status: $CONTAINER_STATUS"
+        echo ""
+        verbose_echo "Executing: $COMPOSE_CMD logs -f"
+        $COMPOSE_CMD logs -f
+        ;;
+    "rebuild")
         cleanup_and_rebuild
         echo ""
         echo "Building and starting magentic-desktop with Docker Compose..."
@@ -164,7 +274,7 @@ case "$COMMAND" in
         fi
         
         echo ""
-        echo "✓ Container successfully started and is running!"
+        echo "✓ Container successfully rebuilt and is running!"
         echo "Press Ctrl+C to stop following logs (container will continue running)"
         echo "To connect via RDP, use localhost:3389"
         verbose_echo "Container ports: 3389 (RDP), 8080 (VS Code)"
@@ -176,8 +286,34 @@ case "$COMMAND" in
     "down")
         echo "Stopping magentic-desktop container..."
         verbose_echo "Executing: $COMPOSE_CMD down"
-        $COMPOSE_CMD down
-        echo "Container stopped and removed."
+        
+        # Check if container is running first
+        if ! $COMPOSE_CMD ps -q magentic-desktop | grep -q .; then
+            echo "No running magentic-desktop container found."
+            exit 0
+        fi
+        
+        # Stop the container
+        if ! $COMPOSE_CMD down; then
+            abort_with_reason "Failed to stop container" "The 'docker compose down' command returned an error during 'down' operation"
+        fi
+        
+        # Wait a moment for container to fully stop
+        echo "Waiting for container to stop..."
+        sleep 2
+        
+        # Verify container is actually stopped
+        verbose_echo "Checking container status..."
+        if $COMPOSE_CMD ps -q magentic-desktop | grep -q .; then
+            echo "ERROR: Container failed to stop!"
+            echo "Container status:"
+            $COMPOSE_CMD ps
+            echo ""
+            echo "Aborting script execution."
+            exit 1
+        fi
+        
+        echo "Container stopped and removed successfully."
         ;;
     "logs")
         echo "Showing magentic-desktop logs..."
@@ -190,9 +326,7 @@ case "$COMMAND" in
         
         # Restart the container and capture exit code
         if ! $COMPOSE_CMD restart; then
-            echo "ERROR: Failed to restart container!"
-            echo "Aborting script execution."
-            exit 1
+            abort_with_reason "Failed to restart container" "The 'docker compose restart' command returned an error"
         fi
         
         # Wait a moment for container to fully start

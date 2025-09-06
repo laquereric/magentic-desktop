@@ -236,10 +236,7 @@ if [ -f "/usr/local/bin/setup-desktop-shortcuts.sh" ]; then
     chown -R "$USERNAME:$USERNAME" "$USER_HOME/Desktop"
 fi
 
-# Set Firefox as default browser
-if [ -f "/usr/local/bin/set-default-browser.sh" ]; then
-    /usr/local/bin/set-default-browser.sh
-fi
+# Note: Firefox default browser setup is handled by entrypoint.sh after all users are created
 
 # Create Firefox startup script for magenticmarket.ai
 cat > "$USER_HOME/start-firefox.sh" << EOF
