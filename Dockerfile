@@ -26,8 +26,8 @@ RUN mv /tmp/image/config/firefox/packages.mozilla.org.asc /etc/apt/keyrings/ && 
     mv /tmp/image/config/vscode/vscode.sources /etc/apt/sources.list.d/ && \
     mv /tmp/image/config/vscode/vscode /etc/apt/preferences.d/
 
-# Update package lists and install both applications
-RUN apt-get -y update && apt-get -y --allow-downgrades install firefox code
+# Update package lists and install applications
+RUN apt-get -y update && apt-get -y --allow-downgrades install firefox code git-gui gitk meld
 
 # Clean up temporary image directory
 RUN rm -rf /tmp/image

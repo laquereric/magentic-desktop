@@ -223,6 +223,17 @@ fi
 # Set ownership of all files
 chown -R "$USERNAME:$USERNAME" "$USER_HOME"
 
+# Setup desktop shortcuts
+if [ -f "/usr/local/bin/setup-desktop-shortcuts.sh" ]; then
+    /usr/local/bin/setup-desktop-shortcuts.sh "$USER_HOME"
+    chown -R "$USERNAME:$USERNAME" "$USER_HOME/Desktop"
+fi
+
+# Set Firefox as default browser
+if [ -f "/usr/local/bin/set-default-browser.sh" ]; then
+    /usr/local/bin/set-default-browser.sh
+fi
+
 echo "User created successfully!"
 echo "Username: $USERNAME"
 echo "Password: $PASSWORD"
@@ -243,8 +254,9 @@ if [ "$AUTO_LAUNCH" = "true" ]; then
     echo "- Auto-launch VS Code on login"
 fi
 if [ "$CREATE_DESKTOP_SHORTCUT" = "true" ]; then
-    echo "- Desktop shortcut for VS Code"
+    echo "- Desktop shortcuts for all applications (VS Code, Firefox, Git tools)"
 fi
+echo "- Firefox set as default browser"
 if [ "$AUTO_LAUNCH" = "true" ] || [ "$CREATE_DESKTOP_SHORTCUT" = "true" ]; then
     echo "- VS Code accessible at http://localhost:$VSCODE_PORT"
 fi

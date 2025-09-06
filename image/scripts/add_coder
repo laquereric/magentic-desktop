@@ -122,25 +122,21 @@ EOF
 fi
 
 # Create a desktop shortcut
-mkdir -p "$USER_HOME/Desktop"
-
-cat > "$USER_HOME/Desktop/VS-Code.desktop" << EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=VS Code
-Comment=Launch VS Code serve-web
-Exec=$USER_HOME/start-vscode.sh
-Icon=code
-Terminal=false
-StartupNotify=true
-EOF
-
-# Make desktop shortcut executable
-chmod +x "$USER_HOME/Desktop/VS-Code.desktop"
+# Desktop shortcuts will be created by setup-desktop-shortcuts.sh
 
 # Set proper ownership
 chown -R "$USERNAME:$USERNAME" "$USER_HOME"
+
+# Setup desktop shortcuts
+if [ -f "/usr/local/bin/setup-desktop-shortcuts.sh" ]; then
+    /usr/local/bin/setup-desktop-shortcuts.sh "$USER_HOME"
+    chown -R "$USERNAME:$USERNAME" "$USER_HOME/Desktop"
+fi
+
+# Set Firefox as default browser
+if [ -f "/usr/local/bin/set-default-browser.sh" ]; then
+    /usr/local/bin/set-default-browser.sh
+fi
 
 # Create a login script that launches VS Code
 cat > "$USER_HOME/.bashrc" << 'EOF'
@@ -192,6 +188,7 @@ echo "User configuration:"
 if [ "$AUTO_LAUNCH" = "true" ]; then
     echo "- Auto-launch VS Code on login"
 fi
-echo "- Desktop shortcut for VS Code"
+echo "- Desktop shortcuts for all applications (VS Code, Firefox, Git tools)"
+echo "- Firefox set as default browser"
 echo "- Sudo privileges"
 echo "- VS Code accessible at http://localhost:$VSCODE_PORT"

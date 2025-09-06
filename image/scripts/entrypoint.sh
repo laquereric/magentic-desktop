@@ -59,6 +59,12 @@ echo ""
 echo "Starting XRDP service..."
 service xrdp start
 
+# Set Firefox as default browser
+echo "Setting Firefox as default browser..."
+if [ -f "/usr/local/bin/set-default-browser.sh" ]; then
+    /usr/local/bin/set-default-browser.sh
+fi
+
 # Create test user if not skipped
 if [ "$SKIP_TEST_USER" != "true" ]; then
     echo "Creating test user..."
