@@ -1,2 +1,2 @@
 #!/bin/bash
-docker run -it -p 3389:3389 --name my_os magentic-desktop
+docker run -it -p 3389:3389 --name magentic-desktop magentic-desktop
