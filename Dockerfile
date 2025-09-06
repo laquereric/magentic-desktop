@@ -24,18 +24,15 @@ COPY  config/vscode/vscode /etc/apt/preferences.d/vscode
 # Update and install both applications
 RUN apt-get -y update && apt-get -y --allow-downgrades install firefox code
 
-# Copy launch script
+# Copy scripts
 COPY image/scripts/launch-vscode.sh /usr/local/bin/launch-vscode.sh
-RUN chmod +x /usr/local/bin/launch-vscode.sh
-
-# Create a user and add to sudo group
-RUN useradd -m testuser && \
-    echo "testuser:1234" | chpasswd && \
-    usermod -aG sudo testuser
+COPY image/scripts/add_coder /usr/local/bin/add_coder
+COPY image/scripts/add_user /usr/local/bin/add_user
+COPY image/scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/launch-vscode.sh /usr/local/bin/add_coder /usr/local/bin/add_user /usr/local/bin/entrypoint.sh
 
 # Expose ports
 EXPOSE 3389 8080
 
-# Start services
-
-CMD ["/bin/bash", "-c", "service xrdp start && /bin/bash"]
+# Set entrypoint
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
