@@ -116,19 +116,14 @@ if [ "$SUDO_ACCESS" = "true" ]; then
     usermod -aG sudo "$USERNAME"
 fi
 
-# Configure applications (VSCode and Firefox)
-if [ "$AUTO_LAUNCH_VSCODE" = "true" ] || [ "$AUTO_LAUNCH_FIREFOX" = "true" ] || [ "$CREATE_DESKTOP_SHORTCUTS" = "true" ]; then
-    echo "Configuring applications for user $USERNAME..."
-    
-    # Detect the correct display
-    DISPLAY_NUM=$(/usr/local/bin/get_display)
-    echo "Using display: $DISPLAY_NUM"
-    
-    /usr/local/bin/config_apps --username "$USERNAME" --port "$VSCODE_PORT" --host "$VSCODE_HOST" --display "$DISPLAY_NUM" \
-        $([ "$AUTO_LAUNCH_VSCODE" = "true" ] && echo "--auto-launch-vscode") \
-        $([ "$AUTO_LAUNCH_FIREFOX" = "true" ] && echo "--auto-launch-firefox") \
-        $([ "$CREATE_DESKTOP_SHORTCUTS" = "true" ] && echo "--desktop-shortcuts")
-fi
+# Detect the correct display
+DISPLAY_NUM=$(/usr/local/bin/get_display)
+echo "Using display: $DISPLAY_NUM"
+
+/usr/local/bin/config_apps --username "$USERNAME" --port "$VSCODE_PORT" --host "$VSCODE_HOST" --display "$DISPLAY_NUM" \
+    $([ "$AUTO_LAUNCH_VSCODE" = "true" ] && echo "--auto-launch-vscode") \
+    $([ "$AUTO_LAUNCH_FIREFOX" = "true" ] && echo "--auto-launch-firefox") \
+    $([ "$CREATE_DESKTOP_SHORTCUTS" = "true" ] && echo "--desktop-shortcuts")
 
 # Create a basic bashrc with optional VS Code auto-launch
 cat > "$USER_HOME/.bashrc" << EOF
@@ -164,12 +159,6 @@ EOF
 
 # Set ownership of all files
 chown -R "$USERNAME:$USERNAME" "$USER_HOME"
-
-# Setup desktop shortcuts
-if [ -f "/usr/local/bin/setup-desktop-shortcuts.sh" ]; then
-    /usr/local/bin/setup-desktop-shortcuts.sh "$USER_HOME"
-    chown -R "$USERNAME:$USERNAME" "$USER_HOME/Desktop"
-fi
 
 # Note: Firefox default browser setup is handled by entrypoint.sh after all users are created
 # Firefox startup script is now handled by add_firefox script

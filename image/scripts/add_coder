@@ -95,7 +95,7 @@ echo "Using display: $DISPLAY_NUM"
 /usr/local/bin/config_apps --username "$USERNAME" --port "$VSCODE_PORT" --host "$VSCODE_HOST" --display "$DISPLAY_NUM" \
     $([ "$AUTO_LAUNCH_VSCODE" = "true" ] && echo "--auto-launch-vscode") \
     $([ "$AUTO_LAUNCH_FIREFOX" = "true" ] && echo "--auto-launch-firefox") \
-    --desktop-shortcuts
+    $([ "$CREATE_DESKTOP_SHORTCUTS" = "true" ] && echo "--desktop-shortcuts")
 
 # Set proper ownership (verify user exists first)
 if id "$USERNAME" &>/dev/null; then
@@ -104,20 +104,6 @@ else
     echo "Error: User $USERNAME was not created properly"
     exit 1
 fi
-
-# Setup desktop shortcuts
-if [ -f "/usr/local/bin/setup-desktop-shortcuts.sh" ]; then
-    /usr/local/bin/setup-desktop-shortcuts.sh "$USER_HOME"
-    if id "$USERNAME" &>/dev/null; then
-        chown -R "$USERNAME:$USERNAME" "$USER_HOME/Desktop"
-    else
-        echo "Error: User $USERNAME does not exist when setting desktop ownership"
-        exit 1
-    fi
-fi
-
-# Note: Firefox default browser setup is handled by entrypoint.sh after all users are created
-# Application configuration is now handled by config_apps script
 
 # Create a basic bashrc (VS Code and Firefox auto-launch are handled by their respective scripts)
 cat > "$USER_HOME/.bashrc" << 'EOF'
