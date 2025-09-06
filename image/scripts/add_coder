@@ -10,7 +10,8 @@ USERNAME="coder"
 PASSWORD="coder123"
 VSCODE_PORT="8080"
 VSCODE_HOST="0.0.0.0"
-AUTO_LAUNCH="true"
+AUTO_LAUNCH_VSCODE="true"
+AUTO_LAUNCH_FIREFOX="true"
 
 # Function to show usage
 show_usage() {
@@ -22,6 +23,7 @@ show_usage() {
     echo "  --port PORT           Set VS Code port (default: 8080)"
     echo "  --host HOST           Set VS Code host (default: 0.0.0.0)"
     echo "  --no-auto-launch      Disable auto-launch of VS Code"
+    echo "  --no-auto-launch-firefox Disable auto-launch of Firefox (default: enabled)"
     echo "  --help                Show this help message"
     echo ""
     echo "Examples:"
@@ -50,7 +52,11 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --no-auto-launch)
-            AUTO_LAUNCH="false"
+            AUTO_LAUNCH_VSCODE="true"
+            shift
+            ;;
+        --no-auto-launch-firefox)
+            AUTO_LAUNCH_FIREFOX="true"
             shift
             ;;
         --help|-h)
@@ -79,60 +85,17 @@ echo "$USERNAME:$PASSWORD" | chpasswd
 # Add to sudo group
 usermod -aG sudo "$USERNAME"
 
-# Create VS Code auto-launch script in user's home (uses enhanced version)
-cat > "$USER_HOME/start-vscode.sh" << EOF
-#!/bin/bash
+# Configure applications (VSCode and Firefox)
+echo "Configuring applications for user $USERNAME..."
 
-# Auto-launch VS Code serve-web for $USERNAME user
-echo "Starting VS Code for $USERNAME user..."
+# Detect the correct display
+DISPLAY_NUM=$(/usr/local/bin/get_display)
+echo "Using display: $DISPLAY_NUM"
 
-# Set display
-export DISPLAY=:0
-
-# Start VS Code serve-web in background
-code serve-web --port $VSCODE_PORT --host $VSCODE_HOST --without-connection-token &
-
-# Wait a moment for VS Code to start
-sleep 3
-
-# Set Firefox profile directory
-FIREFOX_PROFILE_DIR="/home/$USERNAME/firefox-state"
-mkdir -p "\$FIREFOX_PROFILE_DIR"
-
-# Open VS Code in Firefox (first tab)
-firefox -profile "\$FIREFOX_PROFILE_DIR" http://localhost:$VSCODE_PORT &
-
-# Wait a moment for Firefox to open
-sleep 2
-
-# Open a second VS Code tab in Firefox
-firefox -profile "\$FIREFOX_PROFILE_DIR" -new-tab http://localhost:$VSCODE_PORT &
-
-echo "VS Code is now running at: http://localhost:$VSCODE_PORT"
-echo "Firefox has been launched with two VS Code tabs using persistent profile"
-EOF
-
-# Make the script executable
-chmod +x "$USER_HOME/start-vscode.sh"
-
-# Create desktop entry for auto-launch (only if auto-launch is enabled)
-if [ "$AUTO_LAUNCH" = "true" ]; then
-    mkdir -p "$USER_HOME/.config/autostart"
-
-    cat > "$USER_HOME/.config/autostart/vscode.desktop" << EOF
-[Desktop Entry]
-Type=Application
-Name=VS Code Auto Launch
-Comment=Automatically launch VS Code serve-web
-Exec=$USER_HOME/start-vscode.sh
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-EOF
-fi
-
-# Create a desktop shortcut
-# Desktop shortcuts will be created by setup-desktop-shortcuts.sh
+/usr/local/bin/config_apps --username "$USERNAME" --port "$VSCODE_PORT" --host "$VSCODE_HOST" --display "$DISPLAY_NUM" \
+    $([ "$AUTO_LAUNCH_VSCODE" = "true" ] && echo "--auto-launch-vscode") \
+    $([ "$AUTO_LAUNCH_FIREFOX" = "true" ] && echo "--auto-launch-firefox") \
+    --desktop-shortcuts
 
 # Set proper ownership (verify user exists first)
 if id "$USERNAME" &>/dev/null; then
@@ -154,67 +117,9 @@ if [ -f "/usr/local/bin/setup-desktop-shortcuts.sh" ]; then
 fi
 
 # Note: Firefox default browser setup is handled by entrypoint.sh after all users are created
+# Application configuration is now handled by config_apps script
 
-# Create Firefox startup script for magenticmarket.ai
-cat > "$USER_HOME/start-firefox.sh" << EOF
-#!/bin/bash
-
-# Auto-launch Firefox with magenticmarket.ai using persistent profile
-echo "Opening Firefox to magenticmarket.ai..."
-
-# Set display
-export DISPLAY=:0
-
-# Set Firefox profile directory
-FIREFOX_PROFILE_DIR="/home/$USERNAME/firefox-state"
-mkdir -p "\$FIREFOX_PROFILE_DIR"
-
-# Start Firefox with persistent profile and magenticmarket.ai
-firefox -profile "\$FIREFOX_PROFILE_DIR" http://magenticmarket.ai &
-
-echo "Firefox opened to magenticmarket.ai with persistent profile"
-EOF
-
-# Make the script executable
-chmod +x "$USER_HOME/start-firefox.sh"
-
-# Create enhanced VS Code startup script with second tab
-cat > "$USER_HOME/start-vscode-enhanced.sh" << EOF
-#!/bin/bash
-
-# Auto-launch VS Code serve-web for $USERNAME user with second tab
-echo "Starting VS Code for $USERNAME user..."
-
-# Set display
-export DISPLAY=:0
-
-# Start VS Code serve-web in background
-code serve-web --port $VSCODE_PORT --host $VSCODE_HOST --without-connection-token &
-
-# Wait a moment for VS Code to start
-sleep 3
-
-# Set Firefox profile directory
-FIREFOX_PROFILE_DIR="/home/$USERNAME/firefox-state"
-mkdir -p "\$FIREFOX_PROFILE_DIR"
-
-# Open VS Code in Firefox (first tab)
-firefox -profile "\$FIREFOX_PROFILE_DIR" http://localhost:$VSCODE_PORT &
-
-# Wait a moment for Firefox to open
-sleep 2
-
-# Open a second VS Code tab in Firefox
-firefox -profile "\$FIREFOX_PROFILE_DIR" -new-tab http://localhost:$VSCODE_PORT &
-
-echo "VS Code is now running at: http://localhost:$VSCODE_PORT"
-echo "Firefox has been launched with two VS Code tabs using persistent profile"
-EOF
-
-# Make the enhanced script executable
-chmod +x "$USER_HOME/start-vscode-enhanced.sh"
-
-# Create a login script that launches VS Code
+# Create a basic bashrc (VS Code and Firefox auto-launch are handled by their respective scripts)
 cat > "$USER_HOME/.bashrc" << 'EOF'
 # ~/.bashrc: executed by bash(1) for non-login shells.
 
@@ -238,22 +143,8 @@ HISTFILESIZE=2000
 # update the values of LINES and COLUMNS.
 shopt -s checkwinsize
 
-# Auto-launch VS Code on login (only if auto-launch is enabled and not already running)
-if [ "$AUTO_LAUNCH" = "true" ] && ! pgrep -f "code serve-web" > /dev/null; then
-    echo "Auto-launching VS Code..."
-    ~/start-vscode.sh &
-fi
-
-# Auto-launch Firefox with magenticmarket.ai
-if ! pgrep -f "firefox.*magenticmarket.ai" > /dev/null; then
-    echo "Auto-launching Firefox with magenticmarket.ai..."
-    ~/start-firefox.sh &
-fi
-
 # Welcome message
-echo "Welcome, $USERNAME! VS Code and Firefox are configured."
-echo "Access VS Code at: http://localhost:$VSCODE_PORT"
-echo "Firefox opened to: http://magenticmarket.ai"
+echo "Welcome, $USERNAME!"
 EOF
 
 # Set ownership of .bashrc
@@ -269,16 +160,19 @@ echo "Username: $USERNAME"
 echo "Password: $PASSWORD"
 echo "VS Code Port: $VSCODE_PORT"
 echo "VS Code Host: $VSCODE_HOST"
-echo "Auto-launch: $AUTO_LAUNCH"
+echo "Auto-launch VS Code: $AUTO_LAUNCH_VSCODE"
+echo "Auto-launch Firefox: $AUTO_LAUNCH_FIREFOX"
 echo "VS Code URL: http://localhost:$VSCODE_PORT"
 echo ""
 echo "User configuration:"
-if [ "$AUTO_LAUNCH" = "true" ]; then
+if [ "$AUTO_LAUNCH_VSCODE" = "true" ]; then
     echo "- Auto-launch VS Code on login"
+fi
+if [ "$AUTO_LAUNCH_FIREFOX" = "true" ]; then
+    echo "- Auto-launch Firefox on login"
 fi
 echo "- Desktop shortcuts for all applications (VS Code, Firefox, Git tools)"
 echo "- Firefox set as default browser"
-echo "- Firefox auto-opens to http://magenticmarket.ai with persistent profile"
 echo "- VS Code opens with two tabs in Firefox using persistent profile"
 echo "- Sudo privileges"
 echo "- VS Code accessible at http://localhost:$VSCODE_PORT"

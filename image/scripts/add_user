@@ -10,7 +10,8 @@ USERNAME=""
 PASSWORD=""
 VSCODE_PORT="8080"
 VSCODE_HOST="0.0.0.0"
-AUTO_LAUNCH="false"
+AUTO_LAUNCH_VSCODE="false"
+AUTO_LAUNCH_FIREFOX="true"
 SUDO_ACCESS="false"
 CREATE_DESKTOP_SHORTCUT="false"
 
@@ -25,7 +26,9 @@ show_usage() {
     echo "Optional Options:"
     echo "  --port PORT           Set VS Code port (default: 8080)"
     echo "  --host HOST           Set VS Code host (default: 0.0.0.0)"
-    echo "  --auto-launch         Enable auto-launch of VS Code"
+    echo "  --auto-launch-vscode  Enable auto-launch of VS Code"
+    echo "  --auto-launch-firefox Enable auto-launch of Firefox (default: enabled)"
+    echo "  --no-auto-launch-firefox Disable auto-launch of Firefox"
     echo "  --sudo                Grant sudo access to user"
     echo "  --desktop-shortcut    Create desktop shortcut for VS Code"
     echo "  --help                Show this help message"
@@ -55,8 +58,12 @@ while [[ $# -gt 0 ]]; do
             VSCODE_HOST="$2"
             shift 2
             ;;
-        --auto-launch)
-            AUTO_LAUNCH="true"
+        --auto-launch-vscode)
+            AUTO_LAUNCH_VSCODE="false"
+            shift
+            ;;
+        --auto-launch-firefox)
+            AUTO_LAUNCH_FIREFOX="true"
             shift
             ;;
         --sudo)
@@ -64,7 +71,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --desktop-shortcut)
-            CREATE_DESKTOP_SHORTCUT="true"
+            CREATE_DESKTOP_SHORTCUTS="true"
             shift
             ;;
         --help|-h)
@@ -109,68 +116,18 @@ if [ "$SUDO_ACCESS" = "true" ]; then
     usermod -aG sudo "$USERNAME"
 fi
 
-# Create VS Code startup script if auto-launch or desktop shortcut is enabled
-if [ "$AUTO_LAUNCH" = "true" ] || [ "$CREATE_DESKTOP_SHORTCUT" = "true" ]; then
-    cat > "$USER_HOME/start-vscode.sh" << EOF
-#!/bin/bash
-
-# Launch VS Code serve-web for $USERNAME user
-echo "Starting VS Code for $USERNAME user..."
-
-# Set display
-export DISPLAY=:0
-
-# Start VS Code serve-web in background
-code serve-web --port $VSCODE_PORT --host $VSCODE_HOST --without-connection-token &
-
-# Wait a moment for VS Code to start
-sleep 3
-
-# Open VS Code in Firefox
-firefox http://localhost:$VSCODE_PORT &
-
-echo "VS Code is now running at: http://localhost:$VSCODE_PORT"
-echo "Firefox has been launched to open VS Code"
-EOF
-
-    # Make the script executable
-    chmod +x "$USER_HOME/start-vscode.sh"
-fi
-
-# Create desktop entry for auto-launch (only if auto-launch is enabled)
-if [ "$AUTO_LAUNCH" = "true" ]; then
-    mkdir -p "$USER_HOME/.config/autostart"
-
-    cat > "$USER_HOME/.config/autostart/vscode.desktop" << EOF
-[Desktop Entry]
-Type=Application
-Name=VS Code Auto Launch
-Comment=Automatically launch VS Code serve-web
-Exec=$USER_HOME/start-vscode.sh
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-EOF
-fi
-
-# Create desktop shortcut if requested
-if [ "$CREATE_DESKTOP_SHORTCUT" = "true" ]; then
-    mkdir -p "$USER_HOME/Desktop"
-
-    cat > "$USER_HOME/Desktop/VS-Code.desktop" << EOF
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=VS Code
-Comment=Launch VS Code serve-web
-Exec=$USER_HOME/start-vscode.sh
-Icon=code
-Terminal=false
-StartupNotify=true
-EOF
-
-    # Make desktop shortcut executable
-    chmod +x "$USER_HOME/Desktop/VS-Code.desktop"
+# Configure applications (VSCode and Firefox)
+if [ "$AUTO_LAUNCH_VSCODE" = "true" ] || [ "$AUTO_LAUNCH_FIREFOX" = "true" ] || [ "$CREATE_DESKTOP_SHORTCUTS" = "true" ]; then
+    echo "Configuring applications for user $USERNAME..."
+    
+    # Detect the correct display
+    DISPLAY_NUM=$(/usr/local/bin/get_display)
+    echo "Using display: $DISPLAY_NUM"
+    
+    /usr/local/bin/config_apps --username "$USERNAME" --port "$VSCODE_PORT" --host "$VSCODE_HOST" --display "$DISPLAY_NUM" \
+        $([ "$AUTO_LAUNCH_VSCODE" = "true" ] && echo "--auto-launch-vscode") \
+        $([ "$AUTO_LAUNCH_FIREFOX" = "true" ] && echo "--auto-launch-firefox") \
+        $([ "$CREATE_DESKTOP_SHORTCUTS" = "true" ] && echo "--desktop-shortcuts")
 fi
 
 # Create a basic bashrc with optional VS Code auto-launch
@@ -198,34 +155,12 @@ HISTFILESIZE=2000
 shopt -s checkwinsize
 EOF
 
-# Add VS Code auto-launch to bashrc if enabled
-if [ "$AUTO_LAUNCH" = "true" ]; then
-    cat >> "$USER_HOME/.bashrc" << EOF
-
-# Auto-launch VS Code on login (only if not already running)
-if ! pgrep -f "code serve-web" > /dev/null; then
-    echo "Auto-launching VS Code..."
-    ~/start-vscode.sh &
-fi
-
-# Welcome message
-echo "Welcome, $USERNAME! VS Code is configured."
-echo "Access VS Code at: http://localhost:$VSCODE_PORT"
-EOF
-else
-    cat >> "$USER_HOME/.bashrc" << EOF
-
-# Auto-launch Firefox with magenticmarket.ai
-if ! pgrep -f "firefox.*magenticmarket.ai" > /dev/null; then
-    echo "Auto-launching Firefox with magenticmarket.ai..."
-    ~/start-firefox.sh &
-fi
+# Add basic welcome message to bashrc (Firefox auto-launch is handled by add_firefox script)
+cat >> "$USER_HOME/.bashrc" << EOF
 
 # Welcome message
 echo "Welcome, $USERNAME!"
-echo "Firefox opened to: http://magenticmarket.ai"
 EOF
-fi
 
 # Set ownership of all files
 chown -R "$USERNAME:$USERNAME" "$USER_HOME"
@@ -237,54 +172,24 @@ if [ -f "/usr/local/bin/setup-desktop-shortcuts.sh" ]; then
 fi
 
 # Note: Firefox default browser setup is handled by entrypoint.sh after all users are created
-
-# Create Firefox startup script for magenticmarket.ai
-cat > "$USER_HOME/start-firefox.sh" << EOF
-#!/bin/bash
-
-# Auto-launch Firefox with magenticmarket.ai using persistent profile
-echo "Opening Firefox to magenticmarket.ai..."
-
-# Set display
-export DISPLAY=:0
-
-# Set Firefox profile directory
-FIREFOX_PROFILE_DIR="/home/$USERNAME/firefox-state"
-mkdir -p "\$FIREFOX_PROFILE_DIR"
-
-# Start Firefox with persistent profile and magenticmarket.ai
-firefox -profile "\$FIREFOX_PROFILE_DIR" http://magenticmarket.ai &
-
-echo "Firefox opened to magenticmarket.ai with persistent profile"
-EOF
-
-# Make the script executable
-chmod +x "$USER_HOME/start-firefox.sh"
+# Firefox startup script is now handled by add_firefox script
 
 echo "User created successfully!"
 echo "Username: $USERNAME"
 echo "Password: $PASSWORD"
 echo "Sudo Access: $SUDO_ACCESS"
-if [ "$AUTO_LAUNCH" = "true" ] || [ "$CREATE_DESKTOP_SHORTCUT" = "true" ]; then
-    echo "VS Code Port: $VSCODE_PORT"
-    echo "VS Code Host: $VSCODE_HOST"
-    echo "VS Code URL: http://localhost:$VSCODE_PORT"
-fi
-echo "Auto-launch: $AUTO_LAUNCH"
+echo "Auto-launch VS Code: $AUTO_LAUNCH_VSCODE"
+echo "Auto-launch Firefox: $AUTO_LAUNCH_FIREFOX"
 echo "Desktop Shortcut: $CREATE_DESKTOP_SHORTCUT"
 echo ""
 echo "User configuration:"
 if [ "$SUDO_ACCESS" = "true" ]; then
     echo "- Sudo privileges"
 fi
-if [ "$AUTO_LAUNCH" = "true" ]; then
-    echo "- Auto-launch VS Code on login"
+if [ "$AUTO_LAUNCH_VSCODE" = "true" ] || [ "$CREATE_DESKTOP_SHORTCUT" = "true" ]; then
+    echo "- VS Code configured (port: $VSCODE_PORT, host: $VSCODE_HOST)"
 fi
-if [ "$CREATE_DESKTOP_SHORTCUT" = "true" ]; then
-    echo "- Desktop shortcuts for all applications (VS Code, Firefox, Git tools)"
+if [ "$AUTO_LAUNCH_FIREFOX" = "true" ]; then
+    echo "- Firefox configured with auto-launch"
 fi
 echo "- Firefox set as default browser"
-echo "- Firefox auto-opens to http://magenticmarket.ai with persistent profile"
-if [ "$AUTO_LAUNCH" = "true" ] || [ "$CREATE_DESKTOP_SHORTCUT" = "true" ]; then
-    echo "- VS Code accessible at http://localhost:$VSCODE_PORT"
-fi

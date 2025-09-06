@@ -1,0 +1,151 @@
+#!/bin/bash
+
+# Script to configure Firefox for a user
+# This script handles Firefox setup, auto-launch, and startup scripts
+
+set -e  # Exit on any error
+
+# Default values
+USERNAME=""
+DISPLAY=":0"
+AUTO_LAUNCH_FIREFOX="false"
+URL="http://magenticmarket.ai"
+
+# Function to show usage
+show_usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Required Options:"
+    echo "  --username USERNAME    Set the username (required)"
+    echo ""
+    echo "Optional Options:"
+    echo "  --display DISPLAY     Set display (default: :0)"
+    echo "  --auto-launch         Enable auto-launch of Firefox"
+    echo "  --url URL             Set URL to open (default: http://magenticmarket.ai)"
+    echo "  --help                Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0 --username testuser --auto-launch"
+    echo "  $0 --username developer --display :1 --url http://example.com"
+    echo "  $0 --username admin --auto-launch --url http://localhost:3000"
+}
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --username)
+            USERNAME="$2"
+            shift 2
+            ;;
+        --display)
+            DISPLAY="$2"
+            shift 2
+            ;;
+        --auto-launch)
+            AUTO_LAUNCH_FIREFOX="true"
+            shift
+            ;;
+        --url)
+            URL="$2"
+            shift 2
+            ;;
+        --help|-h)
+            show_usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo ""
+            show_usage
+            exit 1
+            ;;
+    esac
+done
+
+# Validate required parameters
+if [ -z "$USERNAME" ]; then
+    echo "Error: Username is required"
+    echo ""
+    show_usage
+    exit 1
+fi
+
+# Check if user exists
+if ! id "$USERNAME" &>/dev/null; then
+    echo "Error: User $USERNAME does not exist"
+    exit 1
+fi
+
+USER_HOME="/home/$USERNAME"
+
+echo "Configuring Firefox for user: $USERNAME"
+
+# Create Firefox startup script
+cat > "$USER_HOME/start-firefox.sh" << EOF
+#!/bin/bash
+
+# Auto-launch Firefox with $URL using persistent profile
+echo "Opening Firefox to $URL..."
+
+# Set display
+export DISPLAY=$DISPLAY
+
+# Set Firefox profile directory
+FIREFOX_PROFILE_DIR="/home/$USERNAME/firefox-state"
+mkdir -p "\$FIREFOX_PROFILE_DIR"
+
+# Start Firefox with persistent profile and URL
+firefox -profile "\$FIREFOX_PROFILE_DIR" $URL &
+
+echo "Firefox opened to $URL with persistent profile"
+EOF
+
+# Make the script executable
+chmod +x "$USER_HOME/start-firefox.sh"
+
+# Create desktop entry for auto-launch (only if auto-launch is enabled)
+if [ "$AUTO_LAUNCH_FIREFOX" = "true" ]; then
+    mkdir -p "$USER_HOME/.config/autostart"
+
+    cat > "$USER_HOME/.config/autostart/firefox.desktop" << EOF
+[Desktop Entry]
+Type=Application
+Name=Firefox Auto Launch
+Comment=Automatically launch Firefox with $URL
+Exec=$USER_HOME/start-firefox.sh
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+EOF
+fi
+
+# Update bashrc to include Firefox auto-launch if enabled
+if [ "$AUTO_LAUNCH_FIREFOX" = "true" ]; then
+    # Check if Firefox auto-launch is already in bashrc
+    if ! grep -q "Auto-launch Firefox" "$USER_HOME/.bashrc"; then
+        cat >> "$USER_HOME/.bashrc" << EOF
+
+# Auto-launch Firefox with $URL
+if ! pgrep -f "firefox.*$URL" > /dev/null; then
+    echo "Auto-launching Firefox with $URL..."
+    ~/start-firefox.sh &
+fi
+
+# Welcome message
+echo "Welcome, $USERNAME! Firefox is configured."
+echo "Firefox opened to: $URL"
+EOF
+    fi
+fi
+
+# Set ownership of all Firefox related files
+chown -R "$USERNAME:$USERNAME" "$USER_HOME/start-firefox.sh"
+if [ -d "$USER_HOME/.config/autostart" ]; then
+    chown -R "$USERNAME:$USERNAME" "$USER_HOME/.config/autostart"
+fi
+
+echo "Firefox configuration completed successfully!"
+echo "Username: $USERNAME"
+echo "Display: $DISPLAY"
+echo "URL: $URL"
+echo "Auto-launch: $AUTO_LAUNCH_FIREFOX"

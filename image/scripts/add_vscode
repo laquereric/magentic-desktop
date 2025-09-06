@@ -1,0 +1,202 @@
+#!/bin/bash
+
+# Script to configure VS Code for a user
+# This script handles VS Code setup, auto-launch, and desktop shortcuts
+
+set -e  # Exit on any error
+
+# Default values
+USERNAME=""
+VSCODE_PORT="8080"
+VSCODE_HOST="0.0.0.0"
+DISPLAY=":0"
+AUTO_LAUNCH_VSCODE="false"
+CREATE_DESKTOP_SHORTCUT="false"
+
+# Function to show usage
+show_usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Required Options:"
+    echo "  --username USERNAME    Set the username (required)"
+    echo ""
+    echo "Optional Options:"
+    echo "  --port PORT           Set VS Code port (default: 8080)"
+    echo "  --host HOST           Set VS Code host (default: 0.0.0.0)"
+    echo "  --display DISPLAY     Set display (default: :0)"
+    echo "  --auto-launch         Enable auto-launch of VS Code"
+    echo "  --desktop-shortcut    Create desktop shortcut for VS Code"
+    echo "  --help                Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0 --username testuser --auto-launch"
+    echo "  $0 --username developer --port 9000 --desktop-shortcut"
+    echo "  $0 --username admin --auto-launch --desktop-shortcut"
+}
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --username)
+            USERNAME="$2"
+            shift 2
+            ;;
+        --port)
+            VSCODE_PORT="$2"
+            shift 2
+            ;;
+        --host)
+            VSCODE_HOST="$2"
+            shift 2
+            ;;
+        --display)
+            DISPLAY="$2"
+            shift 2
+            ;;
+        --auto-launch)
+            AUTO_LAUNCH_VSCODE="true"
+            shift
+            ;;
+        --desktop-shortcut)
+            CREATE_DESKTOP_SHORTCUT="true"
+            shift
+            ;;
+        --help|-h)
+            show_usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo ""
+            show_usage
+            exit 1
+            ;;
+    esac
+done
+
+# Validate required parameters
+if [ -z "$USERNAME" ]; then
+    echo "Error: Username is required"
+    echo ""
+    show_usage
+    exit 1
+fi
+
+# Check if user exists
+if ! id "$USERNAME" &>/dev/null; then
+    echo "Error: User $USERNAME does not exist"
+    exit 1
+fi
+
+USER_HOME="/home/$USERNAME"
+
+echo "Configuring VS Code for user: $USERNAME"
+
+# Create VS Code startup script
+cat > "$USER_HOME/start-vscode.sh" << EOF
+#!/bin/bash
+
+# Launch VS Code serve-web for $USERNAME user
+echo "Starting VS Code for $USERNAME user..."
+
+# Set display
+export DISPLAY=$DISPLAY
+
+# Start VS Code serve-web in background
+code serve-web --port $VSCODE_PORT --host $VSCODE_HOST --without-connection-token &
+
+# Wait a moment for VS Code to start
+sleep 3
+
+# Set Firefox profile directory
+FIREFOX_PROFILE_DIR="/home/$USERNAME/firefox-state"
+mkdir -p "\$FIREFOX_PROFILE_DIR"
+
+# Open VS Code in Firefox (first tab)
+firefox -profile "\$FIREFOX_PROFILE_DIR" http://localhost:$VSCODE_PORT &
+
+# Wait a moment for Firefox to open
+sleep 2
+
+# Open a second VS Code tab in Firefox
+firefox -profile "\$FIREFOX_PROFILE_DIR" -new-tab http://localhost:$VSCODE_PORT &
+
+echo "VS Code is now running at: http://localhost:$VSCODE_PORT"
+echo "Firefox has been launched with two VS Code tabs using persistent profile"
+EOF
+
+# Make the script executable
+chmod +x "$USER_HOME/start-vscode.sh"
+
+# Create desktop entry for auto-launch (only if auto-launch is enabled)
+if [ "$AUTO_LAUNCH_VSCODE" = "true" ]; then
+    mkdir -p "$USER_HOME/.config/autostart"
+
+    cat > "$USER_HOME/.config/autostart/vscode.desktop" << EOF
+[Desktop Entry]
+Type=Application
+Name=VS Code Auto Launch
+Comment=Automatically launch VS Code serve-web
+Exec=$USER_HOME/start-vscode.sh
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+EOF
+fi
+
+# Create desktop shortcut if requested
+if [ "$CREATE_DESKTOP_SHORTCUT" = "true" ]; then
+    mkdir -p "$USER_HOME/Desktop"
+
+    cat > "$USER_HOME/Desktop/VS-Code.desktop" << EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=VS Code
+Comment=Launch VS Code serve-web
+Exec=$USER_HOME/start-vscode.sh
+Icon=code
+Terminal=false
+StartupNotify=true
+EOF
+
+    # Make desktop shortcut executable
+    chmod +x "$USER_HOME/Desktop/VS-Code.desktop"
+fi
+
+# Update bashrc to include VS Code auto-launch if enabled
+if [ "$AUTO_LAUNCH_VSCODE" = "true" ]; then
+    # Check if VS Code auto-launch is already in bashrc
+    if ! grep -q "Auto-launch VS Code on login" "$USER_HOME/.bashrc"; then
+        cat >> "$USER_HOME/.bashrc" << EOF
+
+# Auto-launch VS Code on login (only if not already running)
+if ! pgrep -f "code serve-web" > /dev/null; then
+    echo "Auto-launching VS Code..."
+    ~/start-vscode.sh &
+fi
+
+# Welcome message
+echo "Welcome, $USERNAME! VS Code is configured."
+echo "Access VS Code at: http://localhost:$VSCODE_PORT"
+EOF
+    fi
+fi
+
+# Set ownership of all VS Code related files
+chown -R "$USERNAME:$USERNAME" "$USER_HOME/start-vscode.sh"
+if [ -d "$USER_HOME/.config/autostart" ]; then
+    chown -R "$USERNAME:$USERNAME" "$USER_HOME/.config/autostart"
+fi
+if [ -d "$USER_HOME/Desktop" ]; then
+    chown -R "$USERNAME:$USERNAME" "$USER_HOME/Desktop"
+fi
+
+echo "VS Code configuration completed successfully!"
+echo "Username: $USERNAME"
+echo "VS Code Port: $VSCODE_PORT"
+echo "VS Code Host: $VSCODE_HOST"
+echo "Display: $DISPLAY"
+echo "Auto-launch: $AUTO_LAUNCH_VSCODE"
+echo "Desktop Shortcut: $CREATE_DESKTOP_SHORTCUT"
+echo "VS Code URL: http://localhost:$VSCODE_PORT"

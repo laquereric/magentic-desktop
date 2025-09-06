@@ -16,7 +16,7 @@ show_usage() {
     echo "  CODER_PASSWORD    Password for coder user (default: coder123)"
     echo "  VSCODE_PORT       VS Code port (default: 8080)"
     echo "  VSCODE_HOST       VS Code host (default: 0.0.0.0)"
-    echo "  AUTO_LAUNCH       Enable auto-launch (default: true)"
+    echo "  AUTO_LAUNCH_VSCODE       Enable auto-launch (default: true)"
     echo "  SKIP_CODER_USER   Skip creating coder user (default: false)"
     echo "  TEST_USERNAME     Username for test user (default: testuser)"
     echo "  TEST_PASSWORD     Password for test user (default: 1234)"
@@ -25,7 +25,7 @@ show_usage() {
     echo ""
     echo "Examples:"
     echo "  docker run -e CODER_USERNAME=dev -e CODER_PASSWORD=dev123 magentic-desktop"
-    echo "  docker run -e VSCODE_PORT=9000 -e AUTO_LAUNCH=false magentic-desktop"
+    echo "  docker run -e VSCODE_PORT=9000 -e AUTO_LAUNCH_VSCODE=false magentic-desktop"
     echo "  docker run -e SKIP_CODER_USER=true magentic-desktop"
     echo "  docker run -e TEST_USERNAME=admin -e TEST_PASSWORD=admin123 magentic-desktop"
 }
@@ -35,7 +35,7 @@ CODER_USERNAME="${CODER_USERNAME:-coder}"
 CODER_PASSWORD="${CODER_PASSWORD:-coder123}"
 VSCODE_PORT="${VSCODE_PORT:-8080}"
 VSCODE_HOST="${VSCODE_HOST:-0.0.0.0}"
-AUTO_LAUNCH="${AUTO_LAUNCH:-true}"
+AUTO_LAUNCH_VSCODE="${AUTO_LAUNCH_VSCODE:-true}"
 SKIP_CODER_USER="${SKIP_CODER_USER:-false}"
 
 # Test user configuration
@@ -48,7 +48,7 @@ echo "Configuration:"
 echo "  Coder Username: $CODER_USERNAME"
 echo "  VS Code Port: $VSCODE_PORT"
 echo "  VS Code Host: $VSCODE_HOST"
-echo "  Auto-launch: $AUTO_LAUNCH"
+echo "  Auto-launch: $AUTO_LAUNCH_VSCODE"
 echo "  Skip Coder User: $SKIP_CODER_USER"
 echo "  Test Username: $TEST_USERNAME"
 echo "  Test Sudo: $TEST_SUDO"
@@ -94,7 +94,7 @@ if [ "$SKIP_CODER_USER" != "true" ]; then
             --password "$CODER_PASSWORD" \
             --port "$VSCODE_PORT" \
             --host "$VSCODE_HOST" \
-            $([ "$AUTO_LAUNCH" = "false" ] && echo "--no-auto-launch")
+            $([ "$AUTO_LAUNCH_VSCODE" = "false" ] && echo "--no-auto-launch")
         
         echo "Coder user created successfully!"
     fi
