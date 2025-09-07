@@ -6,6 +6,7 @@ services:
     container_name: magentic-desktop
     entrypoint: ["/bin/bash", "-c"]
     command: ["${OVERRIDE_COMMAND:-/desks/entrypoint.sh}"]
+    privileged: true
     ports:
       - "3389:3389"
       - "8080:8080" 
@@ -13,8 +14,11 @@ services:
       - DISPLAY=:0
       - OVERRIDE_COMMAND=${OVERRIDE_COMMAND:-}
     volumes:
-      - ./desks/:/desks/:rw # This is a workaround to allow the noentrypoint.sh file to be overridden by the host
+      - /Users/ericlaquer/Documents/GitHub:/GitHub
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /var/lib/containers:/var/lib/containers:rw
+      - ./.local/share:/home/podman/.local/share:rw
+      - ./desks/:/desks/:rw # This is a workaround to allow the noentrypoint.sh file to be overridden by the host
       - testuser-firefox-state:/home/testuser/firefox-state
       - coder-firefox-state:/home/coder/firefox-state
     restart: unless-stopped
