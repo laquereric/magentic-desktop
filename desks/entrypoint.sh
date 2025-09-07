@@ -25,6 +25,11 @@ show_usage() {
 
 main() {
     echo "scripts/entrypoint.sh - Starting magentic-desktop container initialization..."
+    
+    # Start Docker service
+    echo "Starting Docker service..."
+    service docker start || echo "Docker service already running or failed to start"
+    
     # Create system-wide desktop shortcuts and autostart entries
     setup-desktop-shortcuts.sh --system
 

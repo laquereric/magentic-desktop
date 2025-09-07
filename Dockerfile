@@ -1,6 +1,6 @@
 FROM ubuntu:latest
 
-# Update and install desktop environment and XRDP
+# Update and install basic packages
 RUN apt-get update && \
     apt-get install -y buildah && \
     apt-get install -y podman && \
@@ -9,7 +9,16 @@ RUN apt-get update && \
     apt-get install -y x11-xkb-utils && \
     apt-get install -y ca-certificates curl gnupg lsb-release && \
     apt-get install -y build-essential libssl-dev libreadline-dev zlib1g-dev && \
-    apt-get install -y ruby-full ruby-dev
+    apt-get install -y ruby-full ruby-dev && \
+    git clone https://github.com/rbenv/rbenv.git ~/.rbenv && \
+    git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build && \
+    echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc && \
+    echo 'eval "$(rbenv init -)"' >> ~/.bashrc && \
+    export PATH="$HOME/.rbenv/bin:$PATH" && \
+    eval "$(rbenv init -)" && \
+    rbenv install 3.2.3 && \
+    rbenv global 3.2.3 && \
+    rbenv rehash
 
 # Install GitHub CLI
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
@@ -20,10 +29,20 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
 
 RUN install -d -m 0755 /etc/apt/keyrings
 
+# Install Docker
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
 # Install Desktop
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y lubuntu-desktop && \
     apt-get install -y xrdp && \
     adduser xrdp ssl-cert
+
+# Configure Docker service
+RUN systemctl enable docker && \
+    usermod -aG docker root
 
 # Copy image directory as a unit
 COPY image/ /tmp/image/
