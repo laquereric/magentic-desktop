@@ -61,6 +61,7 @@ main() {
         --port "$VSCODE_PORT" \
         --host "$VSCODE_HOST"
 
+    echo " "
     # Check and start XRDP service
     echo "Checking XRDP service status..."
      
@@ -72,11 +73,11 @@ main() {
         echo "XRDP service started successfully."
     fi
 
-    echo ""
+    echo " "
     echo "Container initialization completed!"
     echo "XRDP is running on port 3389"
     echo "VS Code will be available on port $VSCODE_PORT"
-    echo ""
+    echo " "
 
     # If a command was provided, execute it
     if [ $# -gt 0 ]; then

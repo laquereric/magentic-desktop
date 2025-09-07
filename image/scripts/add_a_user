@@ -122,19 +122,19 @@ EOF
 EOF
 
     chown -R "$USERNAME:$USERNAME" "$USER_HOME"
-    echo "1"
+
     add_user_dirs --user "$USERNAME"
-    echo "2"
+
     set_firefox_profile --user "$USERNAME"
-    echo "3"
+
     setup_firefox_bashrc --user "$USERNAME"
-    echo "4"
+
     set_keyboard --user "$USERNAME"
-    echo "5"
+
     setup-desktop-shortcuts.sh --user "$USERNAME"
-    echo "6"
+
     configure-firefox-profile.sh --user "$USERNAME"
-    echo "7"
+ 
 }
 
 main "$@"
