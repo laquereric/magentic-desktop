@@ -4,12 +4,16 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: magentic-desktop
+    entrypoint: ["/bin/bash", "-c"]
+    command: ["${OVERRIDE_COMMAND:-/desks/entrypoint.sh}"]
     ports:
       - "3389:3389"
-      - "8080:8080"
+      - "8080:8080" 
     environment:
       - DISPLAY=:0
+      - OVERRIDE_COMMAND=${OVERRIDE_COMMAND:-}
     volumes:
+      - ./desks/:/desks/:rw # This is a workaround to allow the noentrypoint.sh file to be overridden by the host
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - testuser-firefox-state:/home/testuser/firefox-state
       - coder-firefox-state:/home/coder/firefox-state

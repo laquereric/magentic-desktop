@@ -5,8 +5,6 @@
 
 set -e  # Exit on any error
 
-echo "Setting up Firefox profile configuration..."
-
 # Function to show usage
 show_usage() {
     echo "Usage: $0 [OPTIONS]"
@@ -104,7 +102,3 @@ EOF
 
 # Set proper ownership
 chown "$TARGET_USER:$TARGET_USER" "$PROFILE_DIR/user.js" 2>/dev/null || true
-
-echo "Firefox profile configured successfully!"
-echo "Profile location: $PROFILE_DIR"
-echo "Homepage set to: http://magenticmarket.ai"

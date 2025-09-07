@@ -118,13 +118,5 @@ EOF
 # Make all shortcuts executable
 chmod +x "$USER_HOME/Desktop"/*.desktop
 
-echo "✓ Desktop shortcuts created:"
-echo "  - Git GUI (git-gui)"
-echo "  - GitK (gitk)"
-echo "  - Meld (file comparison)"
-echo "  - Git Tools (launcher script)"
-echo "  - VS Code (code editor)"
-echo "  - VS Code Web (serve-web)"
-echo "  - Firefox (web browser)"
-echo ""
-echo "All shortcuts are now available on the desktop!"
+echo "✓ Desktop gitshortcuts created:"
+

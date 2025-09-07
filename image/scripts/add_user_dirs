@@ -94,11 +94,6 @@ create_user_dirs() {
     chown "$username:$username" "$downloads_dir" 2>/dev/null || true
     
     echo "✓ Created directories for $username:"
-    echo "  - Firefox state: $firefox_dir"
-    echo "  - VS Code workspace: $vscode_dir"
-    echo "  - Desktop: $desktop_dir"
-    echo "  - Documents: $docs_dir"
-    echo "  - Downloads: $downloads_dir"
 }
 
 # Main execution

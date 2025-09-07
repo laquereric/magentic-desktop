@@ -8,7 +8,6 @@ set -e  # Exit on any error
 # Default values
 USERNAME=""
 DISPLAY=":0"
-AUTO_LAUNCH_FIREFOX="false"
 URL="http://magenticmarket.ai"
 
 # Function to show usage
@@ -20,14 +19,13 @@ show_usage() {
     echo ""
     echo "Optional Options:"
     echo "  --display DISPLAY     Set display (default: :0)"
-    echo "  --auto-launch         Enable auto-launch of Firefox"
     echo "  --url URL             Set URL to open (default: http://magenticmarket.ai)"
     echo "  --help                Show this help message"
     echo ""
     echo "Examples:"
-    echo "  $0 --username testuser --auto-launch"
+    echo "  $0 --username testuser"
     echo "  $0 --username developer --display :1 --url http://example.com"
-    echo "  $0 --username admin --auto-launch --url http://localhost:3000"
+    echo "  $0 --username admin --url http://localhost:3000"
 }
 
 # Parse command line arguments
@@ -40,10 +38,6 @@ while [[ $# -gt 0 ]]; do
         --display)
             DISPLAY="$2"
             shift 2
-            ;;
-        --auto-launch)
-            AUTO_LAUNCH_FIREFOX="true"
-            shift
             ;;
         --url)
             URL="$2"
@@ -100,12 +94,18 @@ firefox -profile "\$FIREFOX_PROFILE_DIR" $URL &
 echo "Firefox opened to $URL with persistent profile"
 EOF
 
-# Make the script executable
-chmod +x "$USER_HOME/start-firefox.sh"
+    # Make the script executable
+    chmod +x "$USER_HOME/start-firefox.sh"
 
-# Create desktop entry for auto-launch (only if auto-launch is enabled)
-if [ "$AUTO_LAUNCH_FIREFOX" = "true" ]; then
+    # Set ownership of all Firefox related files
+    chown -R "$USERNAME:$USERNAME" "$USER_HOME/start-firefox.sh"
+
+    # Create desktop entry for auto-launch (only if auto-launch is enabled)
+
     mkdir -p "$USER_HOME/.config/autostart"
+# Set proper ownership
+    chown -R "$USERNAME:$USERNAME" "$USER_HOME/.config/autostart"
+
 
     cat > "$USER_HOME/.config/autostart/firefox.desktop" << EOF
 [Desktop Entry]
@@ -117,35 +117,13 @@ Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
 EOF
-fi
 
-# Update bashrc to include Firefox auto-launch if enabled
-if [ "$AUTO_LAUNCH_FIREFOX" = "true" ]; then
-    # Check if Firefox auto-launch is already in bashrc
-    if ! grep -q "Auto-launch Firefox" "$USER_HOME/.bashrc"; then
-        cat >> "$USER_HOME/.bashrc" << EOF
 
-# Auto-launch Firefox with $URL
-if ! pgrep -f "firefox.*$URL" > /dev/null; then
-    echo "Auto-launching Firefox with $URL..."
-    ~/start-firefox.sh &
-fi
+cat >> "$USER_HOME/.bashrc" << EOF
+
+~/start-firefox.sh &
 
 # Welcome message
 echo "Welcome, $USERNAME! Firefox is configured."
 echo "Firefox opened to: $URL"
 EOF
-    fi
-fi
-
-# Set ownership of all Firefox related files
-chown -R "$USERNAME:$USERNAME" "$USER_HOME/start-firefox.sh"
-if [ -d "$USER_HOME/.config/autostart" ]; then
-    chown -R "$USERNAME:$USERNAME" "$USER_HOME/.config/autostart"
-fi
-
-echo "Firefox configuration completed successfully!"
-echo "Username: $USERNAME"
-echo "Display: $DISPLAY"
-echo "URL: $URL"
-echo "Auto-launch: $AUTO_LAUNCH_FIREFOX"

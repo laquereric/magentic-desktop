@@ -8,11 +8,8 @@ set -e  # Exit on any error
 # Default values
 USERNAME=""
 VSCODE_PORT="8080"
-VSCODE_HOST="0.0.0.0"
 DISPLAY=":0"
-AUTO_LAUNCH_VSCODE="false"
-AUTO_LAUNCH_FIREFOX="false"
-CREATE_DESKTOP_SHORTCUTS="false"
+VSCODE_HOST="0.0.0.0"
 
 # Function to show usage
 show_usage() {
@@ -25,15 +22,12 @@ show_usage() {
     echo "  --port PORT           Set VS Code port (default: 8080)"
     echo "  --host HOST           Set VS Code host (default: 0.0.0.0)"
     echo "  --display DISPLAY     Set display (default: :0)"
-    echo "  --auto-launch-vscode  Enable auto-launch of VS Code"
-    echo "  --auto-launch-firefox Enable auto-launch of Firefox"
-    echo "  --desktop-shortcuts   Create desktop shortcuts"
     echo "  --help                Show this help message"
     echo ""
     echo "Examples:"
-    echo "  $0 --username testuser --auto-launch-vscode --auto-launch-firefox"
-    echo "  $0 --username developer --port 9000 --desktop-shortcuts"
-    echo "  $0 --username admin --auto-launch-vscode --desktop-shortcuts"
+    echo "  $0 --username testuser"
+    echo "  $0 --username developer --port 9000"
+    echo "  $0 --username admin  --display :1"
 }
 
 # Parse command line arguments
@@ -54,18 +48,6 @@ while [[ $# -gt 0 ]]; do
         --display)
             DISPLAY="$2"
             shift 2
-            ;;
-        --auto-launch-vscode)
-            AUTO_LAUNCH_VSCODE="true"
-            shift
-            ;;
-        --auto-launch-firefox)
-            AUTO_LAUNCH_FIREFOX="true"
-            shift
-            ;;
-        --desktop-shortcuts)
-            CREATE_DESKTOP_SHORTCUTS="true"
-            shift
             ;;
         --help|-h)
             show_usage
@@ -96,33 +78,7 @@ fi
 
 echo "Configuring applications for user: $USERNAME"
 
-# Configure VS Code if auto-launch is enabled
-if [ "$AUTO_LAUNCH_VSCODE" = "true" ]; then
-    echo "Configuring VS Code for user $USERNAME..."
-    
-    /usr/local/bin/add_vscode --username "$USERNAME" --port "$VSCODE_PORT" --host "$VSCODE_HOST" --display "$DISPLAY" --auto-launch
-fi
+/usr/local/bin/add_firefox --username "$USERNAME" --display "$DISPLAY"
 
-# Configure Firefox if auto-launch is enabled
-if [ "$AUTO_LAUNCH_FIREFOX" = "true" ]; then
-    echo "Configuring Firefox for user $USERNAME..."
-    
-    /usr/local/bin/add_firefox --username "$USERNAME" --display "$DISPLAY" --auto-launch
-fi
+/usr/local/bin/add_vscode --username "$USERNAME" --port "$VSCODE_PORT" --host "$VSCODE_HOST" --display "$DISPLAY"
 
-# Configure desktop shortcuts if requested
-if [ "$CREATE_DESKTOP_SHORTCUTS" = "true" ]; then
-    echo "Configuring desktop shortcuts for user $USERNAME..."
-    
-    # Configure VS Code desktop shortcut
-    /usr/local/bin/add_vscode --username "$USERNAME" --port "$VSCODE_PORT" --host "$VSCODE_HOST" --display "$DISPLAY" --desktop-shortcut
-fi
-
-echo "Application configuration completed successfully!"
-echo "Username: $USERNAME"
-echo "VS Code Port: $VSCODE_PORT"
-echo "VS Code Host: $VSCODE_HOST"
-echo "Display: $DISPLAY"
-echo "Auto-launch VS Code: $AUTO_LAUNCH_VSCODE"
-echo "Auto-launch Firefox: $AUTO_LAUNCH_FIREFOX"
-echo "Desktop Shortcuts: $CREATE_DESKTOP_SHORTCUTS"

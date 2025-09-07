@@ -6,24 +6,31 @@ show_usage() {
     echo ""
     echo "Options:"
     echo "  -v, --verbose    Enable verbose output"
+    echo "  -s, --shell CMD  Override entrypoint with shell command (requires CMD argument)"
     echo "  -h, --help       Show this help message"
     echo ""
     echo "Commands:"
     echo "  up       - Start the magentic-desktop container (reuses existing image)"
     echo "  rebuild  - Rebuild image and start container (with cleanup)"
     echo "  down     - Stop and remove the container"
-    echo "  logs     - Show container logs"
+    echo "  logs     - Show and follow container logs"
     echo "  restart  - Restart the container"
-    echo "  build    - Build the image (with cleanup)"
+    echo "  build    - Build the image only (with cleanup)"
     echo "  clean    - Clean up containers and images only"
     echo "  status   - Show container status"
+    echo "  shell    - Start container and drop into interactive bash session"
     echo ""
     echo "Examples:"
-    echo "  $0 up              # Start container and follow logs (reuses existing image)"
-    echo "  $0 rebuild         # Rebuild image and start container"
-    echo "  $0 -v up           # Start container with verbose output"
-    echo "  $0 logs            # Show logs only"
-    echo "  $0 --verbose down  # Stop container with verbose output"
+    echo "  $0 up                    # Start container (reuses existing image)"
+    echo "  $0 rebuild               # Rebuild image and start container"
+    echo "  $0 -v up                 # Start container with verbose output"
+    echo "  $0 shell                 # Start container and drop into bash session"
+    echo "  $0 -s 'echo hello' up    # Start container with custom shell command"
+    echo "  $0 -s '/desks/noentrypoint.sh' up  # Start with custom script"
+    echo "  $0 -s 'bash -c \"sleep 10\"' up     # Start with long-running command"
+    echo "  $0 logs                  # Show container logs"
+    echo "  $0 down                  # Stop and remove container"
+    echo "  $0 status                # Show container status"
 }
 
 # Check if docker-compose is available
@@ -40,6 +47,7 @@ fi
 
 # Initialize variables
 VERBOSE=false
+SHELL_OVERRIDE=""
 COMMAND=""
 
 # Parse command line arguments
@@ -48,6 +56,16 @@ while [[ $# -gt 0 ]]; do
         -v|--verbose)
             VERBOSE=true
             shift
+            ;;
+        -s|--shell)
+            if [ -n "$2" ] && [[ ! "$2" =~ ^- ]]; then
+                SHELL_OVERRIDE="$2"
+                shift 2
+            else
+                echo "Error: --shell option requires a command argument"
+                echo "Example: $0 -s 'echo hello' up"
+                exit 1
+            fi
             ;;
         -h|--help)
             show_usage
@@ -179,6 +197,14 @@ case "$COMMAND" in
         
         echo ""
         echo "Starting magentic-desktop with Docker Compose..."
+        
+        # Set up environment for shell override if specified
+        if [ -n "$SHELL_OVERRIDE" ]; then
+            echo "Using shell override: $SHELL_OVERRIDE"
+            export OVERRIDE_COMMAND="$SHELL_OVERRIDE"
+            verbose_echo "Setting OVERRIDE_COMMAND=$SHELL_OVERRIDE"
+        fi
+        
         verbose_echo "Executing: $COMPOSE_CMD up -d"
         
         # Start the container and capture exit code
@@ -232,6 +258,14 @@ case "$COMMAND" in
         cleanup_and_rebuild
         echo ""
         echo "Building and starting magentic-desktop with Docker Compose..."
+        
+        # Set up environment for shell override if specified
+        if [ -n "$SHELL_OVERRIDE" ]; then
+            echo "Using shell override: $SHELL_OVERRIDE"
+            export OVERRIDE_COMMAND="$SHELL_OVERRIDE"
+            verbose_echo "Setting OVERRIDE_COMMAND=$SHELL_OVERRIDE"
+        fi
+        
         verbose_echo "Executing: $COMPOSE_CMD up --build -d"
         
         # Start the container and capture exit code
@@ -384,6 +418,76 @@ case "$COMMAND" in
         $COMPOSE_CMD ps
         verbose_echo "Executing: docker ps -a (all containers)"
         docker ps -a
+        ;;
+    "shell")
+        echo "Starting container and dropping into interactive bash session..."
+        
+        # Stop existing container if running
+        if $COMPOSE_CMD ps -q magentic-desktop | grep -q .; then
+            echo "Stopping existing container..."
+            verbose_echo "Executing: $COMPOSE_CMD down"
+            if ! $COMPOSE_CMD down; then
+                abort_with_reason "Failed to stop existing container" "The 'docker compose down' command returned an error during 'shell' operation"
+            fi
+            echo "Container stopped successfully."
+        else
+            verbose_echo "No running magentic-desktop container found"
+        fi
+        
+        echo ""
+        echo "Starting magentic-desktop with interactive bash session..."
+        
+        # Set up environment for shell override
+        export OVERRIDE_COMMAND="bash"
+        verbose_echo "Setting OVERRIDE_COMMAND=bash"
+        
+        verbose_echo "Executing: $COMPOSE_CMD up -d"
+        
+        # Start the container and capture exit code
+        if ! $COMPOSE_CMD up -d; then
+            abort_with_reason "Failed to start container" "The 'docker compose up -d' command returned an error"
+        fi
+        
+        # Wait a moment for container to fully start
+        echo "Waiting for container to start..."
+        sleep 3
+        
+        # Verify container is actually running
+        verbose_echo "Checking container status..."
+        if ! $COMPOSE_CMD ps -q magentic-desktop | grep -q .; then
+            echo "ERROR: Container failed to start or is not running!"
+            echo "Container status:"
+            $COMPOSE_CMD ps
+            echo ""
+            echo "Container logs:"
+            $COMPOSE_CMD logs
+            echo ""
+            echo "Aborting script execution."
+            exit 1
+        fi
+        
+        # Check if container is healthy (running state)
+        CONTAINER_STATUS=$(docker ps --filter "name=magentic-desktop" --format "{{.Status}}" | head -1)
+        if [[ ! "$CONTAINER_STATUS" =~ "Up" ]]; then
+            echo "ERROR: Container is not in running state! Status: $CONTAINER_STATUS"
+            echo "Container status:"
+            $COMPOSE_CMD ps
+            echo ""
+            echo "Container logs:"
+            $COMPOSE_CMD logs
+            echo ""
+            echo "Aborting script execution."
+            exit 1
+        fi
+        
+        echo "✓ Container successfully started and is running!"
+        echo "Dropping into interactive bash session..."
+        echo "Type 'exit' to leave the container (container will continue running)"
+        echo ""
+        
+        # Execute interactive bash session
+        verbose_echo "Executing: docker exec -it magentic-desktop bash"
+        docker exec -it magentic-desktop bash
         ;;
     "help"|"-h"|"--help")
         show_usage

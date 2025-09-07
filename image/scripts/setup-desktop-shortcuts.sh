@@ -19,10 +19,6 @@ show_usage() {
     echo "  $0 --system         # Create system-wide autostart"
 }
 
-# Default values
-TARGET_USER=""
-CREATE_SYSTEM="false"
-
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -31,7 +27,8 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --system)
-            CREATE_SYSTEM="true"
+            TARGET_SYSTEM="true"
+            shift
             ;;
         --help|-h)
             show_usage
@@ -45,12 +42,43 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Function to create desktop shortcuts for a user
-create_desktop_shortcuts() {
-    local username="$1"
-    local user_home="/home/$username"
+# Validation: If TARGET_USER is not set and CREATE_SYSTEM is not set, abort
+if [ -z "$TARGET_USER" ] && [ "$TARGET_SYSTEM" != "true" ]; then
+    echo "Error: Either --user USERNAME or --system must be specified"
+    echo ""
+    show_usage
+    exit 1
+fi
+
+# Function to create system-wide autostart entries
+create_for_system() {
+    echo "image/scripts/setup-desktop-shortcuts.sh - system"
+    # Create system autostart directory
+    mkdir -p /etc/xdg/autostart
     
-    if [ -z "$username" ]; then
+    # Firefox autostart entry
+    cat > /etc/xdg/autostart/firefox.desktop << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=Firefox Auto Launch
+Comment=Automatically launch Firefox with magenticmarket.ai
+Exec=/usr/local/bin/start-firefox-magentic.sh
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+EOF
+
+}
+
+
+
+# Function to create desktop shortcuts for a user
+create_for_user() {
+    echo "image/scripts/setup-desktop-shortcuts.sh - $TARGET_USER"
+
+    local user_home="/home/$TARGET_USER"
+    
+    if [ -z "TARGET_USER" ]; then
         echo "Error: Username required for desktop shortcuts"
         return 1
     fi
@@ -59,8 +87,6 @@ create_desktop_shortcuts() {
         echo "Warning: User home directory $user_home does not exist"
         return 1
     fi
-    
-    echo "Creating desktop shortcuts for user: $username"
     
     # Create Desktop directory if it doesn't exist
     mkdir -p "$user_home/Desktop"
@@ -167,62 +193,12 @@ EOF
     chmod +x "$user_home/Desktop"/*.desktop
     
     # Set proper ownership
-    chown -R "$username:$username" "$user_home/Desktop"
+    chown -R "$TARGET_USER:$TARGET_USER" "$user_home/Desktop"
     
-    echo "✓ Desktop shortcuts created for $username:"
-    echo "  - Git GUI (git-gui)"
-    echo "  - GitK (gitk)"
-    echo "  - Meld (file comparison)"
-    echo "  - Git Tools (launcher script)"
-    echo "  - VS Code (code editor)"
-    echo "  - VS Code Web (serve-web)"
-    echo "  - Firefox (web browser)"
-}
-
-# Function to create system-wide autostart entries
-create_system_autostart() {
-    echo "image/scripts/setup-desktop-shortcuts.sh - Creating system-wide autostart entries..."
-    
-    # Create system autostart directory
-    mkdir -p /etc/xdg/autostart
-    
-    # Firefox autostart entry
-    cat > /etc/xdg/autostart/firefox.desktop << 'EOF'
-[Desktop Entry]
-Type=Application
-Name=Firefox Auto Launch
-Comment=Automatically launch Firefox with magenticmarket.ai
-Exec=/usr/local/bin/start-firefox-magentic.sh
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-EOF
-    
-    echo "✓ System-wide autostart entries created:"
-    echo "  - Firefox auto-launch"
-}
-
-# Function to create user-specific autostart entries
-create_user_autostart() {
- 
-    local username="$1"
-    local user_home="/home/$username"
-   
-    if [ -z "$username" ]; then
-        echo "Error: Username required for user autostart"
-        return 1
-    fi
-    
-    if [ ! -d "$user_home" ]; then
-        echo "Warning: User home directory $user_home does not exist"
-        return 1
-    fi
-    
-    echo "image/scripts/setup-desktop-shortcuts.sh - create_user_autostart() for $username"
-
     # Create user autostart directory
     mkdir -p "$user_home/.config/autostart"
-    
+    chown -R "$TARGET_USER:$TARGET_USER" "$user_home/.config/autostart"
+
     # VS Code autostart entry
     cat > "$user_home/.config/autostart/vscode.desktop" << 'EOF'
 [Desktop Entry]
@@ -246,41 +222,21 @@ Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
 EOF
-    
-    # Set proper ownership
-    chown -R "$username:$username" "$user_home/.config/autostart"
-    
-    echo "✓ User autostart entries created for $username:"
-    echo "  - VS Code auto-launch"
-    echo "  - Firefox auto-launch"
+
 }
 
 # Main execution
 main() {
-    echo "image/scripts/setup-desktop-shortcuts.sh - Setting up desktop shortcuts and autostart entries..."
-    
     # Create system-wide autostart entries
-    if [ "$CREATE_SYSTEM" = "true" ]; then
-        create_system_autostart
+    if [ "$TARGET_SYSTEM" = "true" ]; then
+        create_for_system
     fi
     
     # Create user-specific shortcuts and autostart
     if [ -n "$TARGET_USER" ]; then
-        create_desktop_shortcuts "$TARGET_USER"
+        create_for_user
     fi
 
-    echo ""
-    echo "Desktop shortcuts and autostart configuration completed!"
-    echo ""
-    echo "Summary:"
-    echo "  - Desktop shortcuts: Created for easy application access"
-    echo "  - System autostart: Firefox auto-launches on desktop startup"
-    echo "  - User autostart: VS Code and Firefox auto-launch per user"
-    echo ""
-    echo "Users can now:"
-    echo "  - Double-click desktop shortcuts to launch applications"
-    echo "  - Have applications auto-start when they log in"
-    echo "  - Access all development tools from the desktop"
 }
 
 # Run main function

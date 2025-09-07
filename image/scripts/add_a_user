@@ -1,0 +1,140 @@
+#!/bin/bash
+
+# Script to add a user with optional VS Code auto-launch configuration
+# Based on the add_coder script but more generic
+
+set -e  # Exit on any error
+
+# Default values
+USERNAME=""
+PASSWORD=""
+VSCODE_PORT="8080"
+VSCODE_HOST="0.0.0.0"
+
+# Function to show usage
+show_usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Required Options:"
+    echo "  --username USERNAME    Set the username (required)"
+    echo "  --password PASSWORD    Set the password (required)"
+    echo "  --port PORT           Set VS Code port (default: 8080)"
+    echo "  --host HOST           Set VS Code host (default: 0.0.0.0)"
+    echo "  --help                Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0 --username testuser --password 1234"
+}
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --username)
+            USERNAME="$2"
+            shift 2
+            ;;
+        --password)
+            PASSWORD="$2"
+            shift 2
+            ;;
+        --port)
+            VSCODE_PORT="$2"
+            shift 2
+            ;;
+        --host)
+            VSCODE_HOST="$2"
+            shift 2
+            ;;
+        --help|-h)
+            show_usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo ""
+            show_usage
+            exit 1
+            ;;
+    esac
+done
+
+main() {
+    # Validate required parameters
+    if [ -z "$USERNAME" ] || [ -z "$PASSWORD" ]; then
+        echo "Error: Username and password are required"
+        echo ""
+        show_usage
+        exit 1
+    fi
+
+    echo "Adding user: $USERNAME"
+
+    USER_HOME="/home/$USERNAME"
+
+    # Check if user already exists
+    if id "$USERNAME" &>/dev/null; then
+        echo "User $USERNAME already exists, skipping creation."
+        exit 0
+    fi
+
+    # Create the user with home directory
+    useradd -m "$USERNAME"
+
+    # Set password
+    echo "$USERNAME:$PASSWORD" | chpasswd
+    usermod -aG sudo "$USERNAME"
+
+    # Detect the correct display
+    DISPLAY_NUM=$(/usr/local/bin/get_display)
+
+    /usr/local/bin/config_apps --username "$USERNAME" --port "$VSCODE_PORT" --host "$VSCODE_HOST" --display "$DISPLAY_NUM"
+
+    # Create a basic bashrc with optional VS Code auto-launch
+    cat > "$USER_HOME/.bashrc" << EOF
+    # ~/.bashrc: executed by bash(1) for non-login shells.
+
+    # If not running interactively, don't do anything
+    case \$- in
+        *i*) ;;
+        *) return;;
+    esac
+
+    # Don't put duplicate lines or lines starting with space in the history.
+    HISTCONTROL=ignoreboth
+
+    # Append to the history file, don't overwrite it
+    shopt -s histappend
+
+    # For setting history length see HISTSIZE and HISTFILESIZE in bash(1)
+    HISTSIZE=1000
+    HISTFILESIZE=2000
+
+    # Check the window size after each command and, if necessary,
+    # update the values of LINES and COLUMNS.
+    shopt -s checkwinsize
+EOF
+
+    # Add basic welcome message to bashrc (Firefox auto-launch is handled by add_firefox script)
+    cat >> "$USER_HOME/.bashrc" << EOF
+
+    # Welcome message
+    echo "Welcome, $USERNAME!"
+EOF
+
+    chown -R "$USERNAME:$USERNAME" "$USER_HOME"
+    echo "1"
+    add_user_dirs --user "$USERNAME"
+    echo "2"
+    set_firefox_profile --user "$USERNAME"
+    echo "3"
+    setup_firefox_bashrc --user "$USERNAME"
+    echo "4"
+    set_keyboard --user "$USERNAME"
+    echo "5"
+    setup-desktop-shortcuts.sh --user "$USERNAME"
+    echo "6"
+    configure-firefox-profile.sh --user "$USERNAME"
+    echo "7"
+}
+
+main "$@"
