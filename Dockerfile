@@ -2,6 +2,7 @@ FROM ubuntu:latest
 
 # Update and install desktop environment and XRDP
 RUN apt-get update && \
+apt-get install buildah && \
     apt-get install -y podman && \
     apt-get install -y nano && \
     apt-get install -y git && \
