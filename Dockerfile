@@ -9,16 +9,7 @@ RUN apt-get update && \
     apt-get install -y x11-xkb-utils && \
     apt-get install -y ca-certificates curl gnupg lsb-release && \
     apt-get install -y build-essential libssl-dev libreadline-dev zlib1g-dev && \
-    apt-get install -y ruby-full ruby-dev && \
-    git clone https://github.com/rbenv/rbenv.git ~/.rbenv && \
-    git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build && \
-    echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc && \
-    echo 'eval "$(rbenv init -)"' >> ~/.bashrc && \
-    export PATH="$HOME/.rbenv/bin:$PATH" && \
-    eval "$(rbenv init -)" && \
-    rbenv install 3.2.3 && \
-    rbenv global 3.2.3 && \
-    rbenv rehash
+    apt-get install -y ruby-full ruby-dev
 
 # Install GitHub CLI
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
