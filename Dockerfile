@@ -2,7 +2,7 @@ FROM ubuntu:latest
 
 # Update and install desktop environment and XRDP
 RUN apt-get update && \
-apt-get install buildah && \
+    apt-get install -y buildah && \
     apt-get install -y podman && \
     apt-get install -y nano && \
     apt-get install -y git && \
@@ -42,6 +42,12 @@ RUN apt-get -y update && apt-get -y --allow-downgrades install firefox code git-
 # Copy and setup scripts
 RUN chmod +x /tmp/image/scripts/* && \
     mv /tmp/image/scripts/* /usr/local/bin/
+
+# Install Ruby gems
+COPY Gemfile /tmp/Gemfile
+RUN gem install bundler && \
+    cd /tmp && \
+    bundle install --system
 
 # Expose ports
 EXPOSE 3389 8080
