@@ -2,9 +2,21 @@ FROM ubuntu:latest
 
 # Update and install desktop environment and XRDP
 RUN apt-get update && \
+    apt-get install -y buildah && \
+    apt-get install -y podman && \
     apt-get install -y nano && \
     apt-get install -y git && \
-    apt-get install -y x11-xkb-utils 
+    apt-get install -y x11-xkb-utils && \
+    apt-get install -y ca-certificates curl gnupg lsb-release && \
+    apt-get install -y build-essential libssl-dev libreadline-dev zlib1g-dev && \
+    apt-get install -y ruby-full ruby-dev
+
+# Install GitHub CLI
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
+    chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y gh
 
 RUN install -d -m 0755 /etc/apt/keyrings
 
@@ -31,6 +43,12 @@ RUN apt-get -y update && apt-get -y --allow-downgrades install firefox code git-
 # Copy and setup scripts
 RUN chmod +x /tmp/image/scripts/* && \
     mv /tmp/image/scripts/* /usr/local/bin/
+
+# Install Ruby gems
+COPY Gemfile /tmp/Gemfile
+RUN gem install bundler && \
+    cd /tmp && \
+    bundle install --system
 
 # Expose ports
 EXPOSE 3389 8080

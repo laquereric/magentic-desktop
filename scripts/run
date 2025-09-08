@@ -5,7 +5,11 @@ echo "Starting magentic-desktop container..."
 docker rm -f magentic-desktop 2>/dev/null || true
 
 # Run the container in detached mode
-docker run -d -p 3389:3389 --name magentic-desktop magentic-desktop
+#docker run -d -p 3389:3389 --name magentic-desktop magentic-desktop
+docker run -it --rm --privileged \
+  -v /var/lib/containers:/var/lib/containers \
+  -v /home/podman/.local/share/containers:/home/podman/.local/share/containers \
+  magentic-desktop bash -c "podman info"
 
 echo "Container started! Following logs..."
 echo "Press Ctrl+C to stop following logs (container will continue running)"
