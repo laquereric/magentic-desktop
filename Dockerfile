@@ -8,6 +8,8 @@ RUN apt-get update && \
     apt-get install -y git && \
     apt-get install -y x11-xkb-utils && \
     apt-get install -y ca-certificates curl gnupg lsb-release && \
+    apt-get install -y nodejs && \
+    apt-get install -y default-jre && \
     apt-get install -y build-essential libssl-dev libreadline-dev zlib1g-dev && \
     apt-get install -y ruby-full ruby-dev
 
