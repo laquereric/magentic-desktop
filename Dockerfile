@@ -8,8 +8,9 @@ RUN apt-get update && \
     apt-get install -y git && \
     apt-get install -y x11-xkb-utils && \
     apt-get install -y ca-certificates curl gnupg lsb-release && \
-    apt-get install -y nodejs && \
-    apt-get install -y default-jre && \
+    apt-get install -y python3 python3-pip python3-venv python3-dev python3-setuptools python3-wheel && \
+    apt-get install -y python3-tk python3-numpy python3-scipy python3-matplotlib python3-pandas && \
+    apt-get install -y nodejs npm default-jre && \
     apt-get install -y build-essential libssl-dev libreadline-dev zlib1g-dev && \
     apt-get install -y ruby-full ruby-dev
 
@@ -56,6 +57,7 @@ RUN chmod +x /tmp/image/scripts/* && \
     mv /tmp/image/scripts/* /usr/local/bin/
 
 # Install Ruby gems
+RUN mkdir -p /ruby
 COPY Gemfile /ruby/Gemfile
 RUN gem install bundler && \
     cd /ruby && \
