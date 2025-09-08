@@ -58,16 +58,15 @@ RUN mv /tmp/image/config/firefox/packages.mozilla.org.asc /etc/apt/keyrings/ && 
 # Update package lists and install applications
 RUN apt-get -y update && apt-get -y --allow-downgrades install firefox code git-gui gitk meld
 
-
 # Copy and setup scripts
 RUN chmod +x /tmp/image/scripts/* && \
     mv /tmp/image/scripts/* /usr/local/bin/
 
 # Install Ruby gems
-COPY Gemfile /tmp/Gemfile
+COPY Gemfile /ruby/Gemfile
 RUN gem install bundler && \
-    cd /tmp && \
-    bundle install --system
+    cd /ruby && \
+    bundle install
 
 # Expose ports
 EXPOSE 3389 8080
