@@ -7,8 +7,9 @@ RUN apt-get update && \
     apt-get install -y nano && \
     apt-get install -y git && \
     apt-get install -y x11-xkb-utils && \
-    apt-get install -y ruby-full && \
-    apt-get install -y ca-certificates curl gnupg lsb-release
+    apt-get install -y ca-certificates curl gnupg lsb-release && \
+    apt-get install -y build-essential libssl-dev libreadline-dev zlib1g-dev && \
+    apt-get install -y ruby-full ruby-dev
 
 # Install GitHub CLI
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
