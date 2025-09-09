@@ -1,7 +1,7 @@
 FROM ubuntu:latest
 
 RUN apt-get update && \
-    apt-get install -y gpg lsb-release curl nano
+    apt-get install -y gpg lsb-release curl zsh nano git gh
 
 RUN install -d -m 0755 /etc/apt/keyrings
 
@@ -14,13 +14,11 @@ RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /
     apt-get update
 
 # Update and install basic packages
-RUN apt-get install -y git gh && \
-    apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin && \
+RUN apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin && \
     apt-get install -y buildah podman && \
     apt-get install -y x11-xkb-utils && \
-    apt-get install -y ca-certificates curl gnupg lsb-release && \
+    apt-get install -y ca-certificates gnupg lsb-release && \
     apt-get install -y python3-full python3-pip python3-venv python3-dev python3-setuptools python3-wheel pipx && \
-    apt-get install -y python3-tk python3-numpy python3-scipy python3-matplotlib python3-pandas && \
     apt-get install -y nodejs yarn && \
     apt-get install -y default-jre && \
     apt-get install -y build-essential libssl-dev libreadline-dev zlib1g-dev && \

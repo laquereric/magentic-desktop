@@ -67,19 +67,18 @@ main() {
         exit 1
     fi
 
-    echo "Adding user: $USERNAME"
-
-    USER_HOME="/home/$USERNAME"
 
     # Check if user already exists
     if id "$USERNAME" &>/dev/null; then
         echo "User $USERNAME already exists, skipping creation."
         exit 0
     fi
-
+    
+    USER_HOME="/home/$USERNAME"
+    echo "Adding user: $USERNAME PASSWORD: $PASSWORD USER_HOME: $USER_HOME shell: zsh"
     # Create the user with home directory
     useradd -m "$USERNAME"
-
+    usermod -s /usr/bin/zsh $USERNAME
     # Set password
     echo "$USERNAME:$PASSWORD" | chpasswd
     usermod -aG sudo "$USERNAME"
@@ -115,7 +114,7 @@ main() {
 EOF
 
     # Add basic welcome message to bashrc (Firefox auto-launch is handled by add_firefox script)
-    cat >> "$USER_HOME/.bashrc" << EOF
+    cat >> "$USER_HOME/.profile" << EOF
 
     # Welcome message
     echo "Welcome, $USERNAME!"

@@ -25,7 +25,11 @@ show_usage() {
 
 main() {
     echo "scripts/entrypoint.sh - Starting magentic-desktop container initialization..."
-    
+
+    echo "Prep Python with pipx..."
+    #pipx_bootstrap.sh
+    pipx_config.sh
+
     # Start Docker service
     echo "Starting Docker service..."
     service docker start || echo "Docker service already running or failed to start"
@@ -47,8 +51,6 @@ main() {
     echo "  VS Code Port: $VSCODE_PORT"
     echo "  VS Code Host: $VSCODE_HOST"
     echo " "
-    echo "  Test Username: $TEST_USERNAME"
-    echo "  Test Password: $TEST_PASSWORD"
     # Create the test user with specified parameters
     add_a_user \
         --username "$TEST_USERNAME" \
@@ -57,8 +59,6 @@ main() {
         --host "$VSCODE_HOST"
     
     echo " "
-    echo "  Coder Username: $CODER_USERNAME"
-    echo "  Coder Password: $CODER_PASSWORD"
     # Create the test user with specified parameters
     add_a_user \
         --username "$CODER_USERNAME" \
