@@ -3,7 +3,6 @@
 require "lubuntu_gui"
 
 if __FILE__ == $0
-    directory = File.expand_path('..',__FILE__)
-    instance = LubuntuGui::Instance.new(directory:directory)
+    instance = LubuntuGui::Instance.new(name: 'top.instance', source_file: __FILE__, directory: File.expand_path('..',__FILE__))
     p instance.children
 end

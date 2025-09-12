@@ -1,7 +1,4 @@
-require "lubuntu_gui"
-
-LubuntuGui::Application.new(name:"Firefox",file:__FILE__).tap do |a|
-    a.desktop_entry = <<~DESKTOP
+desktop_entry = <<~DESKTOP
 [Desktop Entry]
   Version=1.0
   Type=Application
@@ -13,4 +10,3 @@ LubuntuGui::Application.new(name:"Firefox",file:__FILE__).tap do |a|
   StartupNotify=true
   Categories=Network;WebBrowser;
 DESKTOP
-end
