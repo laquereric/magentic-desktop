@@ -1,0 +1,57 @@
+require_relative "get_display"
+require_relative "firefoxx"
+require_relative "vscode"
+
+
+class ZshellWrapperUser
+    attr_accessor :index
+    attr_accessor :bashrc_file
+    attr_accessor :firefox_dir
+    attr_accessor :vscode_dir
+    attr_accessor :desktop_dir
+    attr_accessor :docs_dir
+
+    
+    def add_file(file)
+        touch "#{file}"
+        chmod 755 "#{file}"
+        chown "#{username}:#{username}" "#{file}" 2>/dev/null
+        file
+    end
+
+    def add_dir(dir)
+        mkdir -p "#{dir}"
+        chmod 755 "#{dir}"
+        chown "#{username}:#{username}" "#{dir}" 2>/dev/null
+        dir
+    end
+
+    def elaborate
+        useradd -m "#{username}"
+        usermod -s /usr/bin/zsh "#{username}"
+        chown -R "#{username}:#{username}" "#{home_directory}"
+        desktop_dir = add_dir("$user_home/Desktop")
+        docs_dir = add_dir("$user_home/Documents")
+
+
+        bashrc_file = add_file("$user_home/.bashrc")
+        
+        add_firefox
+        vscode_dir = add_dir("$user_home/vscode-workspace")
+add_vscode --username "$USERNAME" --port "$VSCODE_PORT" --host "$VSCODE_HOST" --display "$DISPLAY"
+usersetup_firefox_bashrc --user "$USERNAME"
+set_keyboard --user "$USERNAME"
+setup-desktop-shortcuts.sh --user "$USERNAME"
+
+        self
+    end
+end
+
+index = 0
+Dir.glob("/image/scripts/users/*").each do |script|
+    user = require_relative script
+        .elaborate
+    user.index += 1
+end
+
+

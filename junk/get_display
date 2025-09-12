@@ -1,0 +1,74 @@
+#!/usr/bin/env ruby
+
+# Script to detect and return the correct display for X11 applications
+# This script centralizes display detection logic used across multiple scripts
+
+def log_verbose(message)
+  puts "[VERBOSE] #{message}" if ENV['VERBOSE'] == 'true'
+end
+
+def insure_display(index)
+  target_display = ":#{index}"
+  
+  # Check if the target display already exists
+  if display_exists?(target_display)
+    log_verbose "Display #{target_display} already exists"
+    return target_display
+  end
+  
+  # Try to detect active X display by looking for Xorg processes
+  xorg_info = `ps aux | grep "Xorg.*:" | grep -v grep | head -1`.strip
+  if !xorg_info.empty?
+    log_verbose "Found Xorg process: #{xorg_info}"
+    extracted_display = `echo "#{xorg_info}" | sed -n "s/.*Xorg :\\([0-9]*\\).*/:\\1/p"`.strip
+    if !extracted_display.empty?
+      detected_display = extracted_display
+      log_verbose "Extracted display from Xorg process: #{detected_display}"
+    else
+      log_verbose "Could not extract display from Xorg process, creating new display"
+      create_display(index)
+      return target_display
+    end
+  else
+    log_verbose "No Xorg processes found, creating new display"
+    create_display(index)
+    return target_display
+  end
+  
+  # If we found an existing display but it's not the one we want, create the target display
+  if detected_display != target_display
+    log_verbose "Found display #{detected_display} but need #{target_display}, creating target display"
+    create_display(index)
+  end
+  
+  target_display
+end
+
+def display_exists?(display)
+  # Check if X server is running on the specified display
+  system("xdpyinfo -display #{display} >/dev/null 2>&1")
+end
+
+def create_display(index)
+  log_verbose "Creating new X display :#{index}"
+  
+  # Start Xvfb (X Virtual Framebuffer) for the specified display
+  system("Xvfb :#{index} -screen 0 1024x768x24 -ac +extension GLX +render -noreset &")
+  
+  # Wait a moment for the display to start
+  sleep(2)
+  
+  # Verify the display was created successfully
+  if display_exists?(":#{index}")
+    log_verbose "Successfully created display :#{index}"
+  else
+    log_verbose "Failed to create display :#{index}"
+  end
+end
+
+# If this script is run directly, test the function
+if __FILE__ == $0
+  display_index = ARGV[0] || "0"
+  result = insure_display(display_index.to_i)
+  puts result
+end

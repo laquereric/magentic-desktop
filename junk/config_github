@@ -1,0 +1,9 @@
+#!/bin/bash
+# Run all Python scripts in the python directory
+cd /community/github/
+for script in /image/community/github/scripts/*; do
+    if [ -f "$script" ] && [ -x "$script" ]; then
+        echo "Running $script..."
+        bash "$script"
+    fi
+done

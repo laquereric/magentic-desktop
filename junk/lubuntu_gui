@@ -1,0 +1,5 @@
+module LubuntuGui
+    class Application
+        attr_accessor :desktop_entry
+    end
+end

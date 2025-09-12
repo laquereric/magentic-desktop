@@ -64,8 +64,12 @@ RUN gem install bundler && \
 # Expose ports
 EXPOSE 3389 8080
 
-# Writes to host desks/entrypoint.sh will uverride image value because of VOLUME mapping
+# BAKE Community Repositories into the image
+COPY image/comunity/ /community/
+
+# Writes to host desks/entrypoint.sh will override image value because of VOLUME mapping
 COPY desks/ /desks/
+
 RUN chmod +x /desks/*
 
 ENTRYPOINT ["/desks/entrypoint.sh"]

@@ -1,0 +1,104 @@
+#!/bin/bash
+
+# Script to configure Firefox profile settings
+# This script sets up Firefox with optimal settings for the desktop environment
+
+set -e  # Exit on any error
+
+# Function to show usage
+show_usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  --user USERNAME     Set profile for specific user (default: current user)"
+    echo "  --profile-dir DIR   Custom profile directory (default: /home/USER/firefox-state)"
+    echo "  --help              Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                  # Configure for current user"
+    echo "  $0 --user testuser  # Configure for testuser"
+    echo "  $0 --profile-dir /custom/path  # Use custom profile directory"
+}
+
+# Default values
+TARGET_USER=""
+PROFILE_DIR=""
+VERBOSE="false"
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --user)
+            TARGET_USER="$2"
+            shift 2
+            ;;
+        --profile-dir)
+            PROFILE_DIR="$2"
+            shift 2
+            ;;
+        --verbose)
+            VERBOSE="true"
+            shift
+            ;;
+        --help|-h)
+            show_usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            show_usage
+            exit 1
+            ;;
+    esac
+done
+
+# Determine target user
+if [ -z "$TARGET_USER" ]; then
+    TARGET_USER=$(whoami)
+fi
+
+# Determine profile directory
+if [ -z "$PROFILE_DIR" ]; then
+    PROFILE_DIR="/home/$TARGET_USER/firefox-state"
+fi
+
+echo "Configuring Firefox profile for user: $TARGET_USER"
+echo "Profile directory: $PROFILE_DIR"
+
+# Create profile directory
+mkdir -p "$PROFILE_DIR"
+chown "$TARGET_USER:$TARGET_USER" "$PROFILE_DIR" 2>/dev/null || true
+
+# Create user.js for Firefox preferences
+cat > "$PROFILE_DIR/user.js" << 'EOF'
+// Firefox profile preferences for desktop environment
+user_pref("browser.startup.homepage", "http://magenticmarket.ai");
+user_pref("browser.startup.page", 1);
+user_pref("browser.newtabpage.enabled", false);
+user_pref("browser.newtab.preload", false);
+user_pref("browser.newtabpage.activity-stream.enabled", false);
+user_pref("browser.shell.checkDefaultBrowser", false);
+user_pref("browser.defaultbrowser.notificationbar", false);
+user_pref("browser.rights.3.shown", true);
+user_pref("browser.startup.homepage_override.mstone", "ignore");
+user_pref("startup.homepage_welcome_url", "");
+user_pref("startup.homepage_welcome_url.additional", "");
+user_pref("browser.startup.homepage_override.buildID", "ignore");
+user_pref("browser.startup.homepage_override.version", "ignore");
+user_pref("browser.startup.page", 1);
+user_pref("browser.startup.homepage", "http://magenticmarket.ai");
+user_pref("browser.newtabpage.enabled", false);
+user_pref("browser.newtab.preload", false);
+user_pref("browser.newtabpage.activity-stream.enabled", false);
+user_pref("browser.shell.checkDefaultBrowser", false);
+user_pref("browser.defaultbrowser.notificationbar", false);
+user_pref("browser.rights.3.shown", true);
+user_pref("browser.startup.homepage_override.mstone", "ignore");
+user_pref("startup.homepage_welcome_url", "");
+user_pref("startup.homepage_welcome_url.additional", "");
+user_pref("browser.startup.homepage_override.buildID", "ignore");
+user_pref("browser.startup.homepage_override.version", "ignore");
+EOF
+
+# Set proper ownership
+chown "$TARGET_USER:$TARGET_USER" "$PROFILE_DIR/user.js" 2>/dev/null || true

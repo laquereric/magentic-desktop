@@ -14,7 +14,9 @@ services:
       - DISPLAY=:0
       - OVERRIDE_COMMAND=${OVERRIDE_COMMAND:-}
     volumes:
+      - /Users/ericlaquer/Secrets:/Secrets
       - /Users/ericlaquer/Documents/GitHub:/GitHub
+      - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /var/lib/containers:/var/lib/containers:rw
       - ./.local/share:/home/podman/.local/share:rw
