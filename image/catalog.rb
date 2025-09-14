@@ -4,7 +4,7 @@ require "lubuntu_gui"
 
 if __FILE__ == $0
     source_file = File.expand_path(__FILE__)
-    catalog = LubuntuGui::Catalog.new(source_file: source_file)
+    catalog = LubuntuGui::Catalog.new(source_file: source_file).instance
     p catalog
     #p "example: #{instance.children.first}"
     #p "count: #{instance.children.count}"
