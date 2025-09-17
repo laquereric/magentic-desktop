@@ -1,4 +1,0 @@
-#!/bin/bash
-git clone https://github.com/laquereric/magentic-ui.git
-cd /community/github/magentic-ui
-bash ./build-all.sh

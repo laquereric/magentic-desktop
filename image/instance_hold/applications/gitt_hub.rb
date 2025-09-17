@@ -1,7 +1,6 @@
 require "lubuntu_gui"
 
-LubuntuGui::Application.new(name:"Github",file:__FILE__).tap do |a|
-    a.desktop_entry = <<~DESKTOP
+a.desktop_entry = <<~DESKTOP
 [Desktop Entry]
     Version=1.0
     Type=Application
