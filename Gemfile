@@ -9,9 +9,9 @@ git_source(:tangent_opensource) do |repo_name|
     "https://github.com/laquereric/#{repo_name}.git"
 end
 
-gem "podman_cli", tangent_opensource: "podman_cli"
-gem "lubuntu-gui", path: "../lubuntu-gui" #tangent_opensource: "lubuntu-gui"
-gem "litellm_manager", tangent_opensource: "litellm_manager"
-gem "buildah", tangent_opensource: "buildah"
+#gem "podman_cli", tangent_opensource: "podman_cli"
+gem "lubuntu-gui", path: "/GitHub/lubuntu-gui" #tangent_opensource: "lubuntu-gui"
+#gem "litellm_manager", tangent_opensource: "litellm_manager"
+#gem "buildah", tangent_opensource: "buildah"
 
 # gem "rails"

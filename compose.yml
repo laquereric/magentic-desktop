@@ -19,10 +19,11 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /var/lib/containers:/var/lib/containers:rw
-      - ./.local/share:/home/podman/.local/share:rw
-      - ./desks/:/desks/:rw # This is a workaround to allow the noentrypoint.sh file to be overridden by the host
-      - testuser-firefox-state:/home/testuser/firefox-state
-      - coder-firefox-state:/home/coder/firefox-state
+      - ./.gem:/.gem:rw
+      #- ./.local/share:/home/podman/.local/share:rw
+      #- ./desks/:/desks/:rw # This is a workaround to allow the noentrypoint.sh file to be overridden by the host
+      #- testuser-firefox-state:/home/testuser/firefox-state
+      #- coder-firefox-state:/home/coder/firefox-state
     restart: unless-stopped
     stdin_open: true
     tty: true

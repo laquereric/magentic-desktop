@@ -12,25 +12,19 @@ end
 def main
   puts "scripts/entrypoint.rb - Starting magentic-desktop container initialization..."
 
-  #require_relative("../image/scripts/pipx_bootstrap")
-  # pipx_bootstrap
-
-  require_relative("../image/scripts/pipx_config")
-  pipx_config
-
   # Start Docker service
   puts "Starting Docker service..."
   unless system("service docker start")
     puts "Docker service already running or failed to start"
   end
-  
-  # Create system-wide desktop shortcuts and autostart entries
-  system("setup-desktop-shortcuts.sh --system")
 
   puts " "
 
-  puts "Adding users..."
-  system("bash /usr/local/bin/add_users")
+  #puts "Adding users..."
+  #system("bash /usr/local/bin/add_users")
+  system("gem install bundler")
+  system("bundle install")
+  system("bundle exec ruby /scripts/catalog.rb")
 
   puts " "
   # Check and start XRDP service

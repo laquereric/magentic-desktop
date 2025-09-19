@@ -15,12 +15,12 @@ RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /
 
 # Update and install basic packages
 RUN apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin && \
-    apt-get install -y buildah podman && \
+    #apt-get install -y buildah podman && \
     apt-get install -y x11-xkb-utils && \
     apt-get install -y ca-certificates gnupg lsb-release && \
-    apt-get install -y python3-full python3-pip python3-venv python3-dev python3-setuptools python3-wheel pipx && \
+    #apt-get install -y python3-full python3-pip python3-venv python3-dev python3-setuptools python3-wheel pipx && \
     apt-get install -y nodejs yarn && \
-    apt-get install -y default-jre && \
+    #apt-get install -y default-jre && \
     apt-get install -y build-essential libssl-dev libreadline-dev zlib1g-dev && \
     apt-get install -y ruby-full ruby-dev && \
     apt-get install -y xrdp
@@ -40,36 +40,39 @@ RUN id -u xrdp 2>/dev/null || adduser --disabled-password --gecos "" xrdp; \
     usermod -aG docker root; \
     usermod -aG docker xrdp || true
 
-# Copy image directory as a unit
-COPY image/ /tmp/image/
+# Copy image_config directory as a unit
+COPY image_config/ /image_config
 
 # Install Firefox configurations
-RUN mv /tmp/image/config/firefox/packages.mozilla.org.asc /etc/apt/keyrings/ && \
-    mv /tmp/image/config/firefox/mozilla.sources /etc/apt/sources.list.d/ && \
-    mv /tmp/image/config/firefox/mozilla /etc/apt/preferences.d/
+RUN mv /image_config/firefox/packages.mozilla.org.asc /etc/apt/keyrings/ && \
+    mv /image_config/firefox/mozilla.sources /etc/apt/sources.list.d/ && \
+    mv /image_config/firefox/mozilla /etc/apt/preferences.d/
+
+# Copy container_scripts directory as a unit
+COPY container_scripts/ /scripts
+
+RUN chmod +x /scripts/*
+
+COPY Gemfile* /
 
 # Copy and setup scripts
-RUN chmod +x /tmp/image/scripts/* && \
-    mv /tmp/image/scripts/* /usr/local/bin/
+# RUN chmod +x /tmp/image/scripts/* && \
+#    mv /tmp/image/scripts/* /usr/local/bin/
 
-# Install Ruby gems
-RUN mkdir -p /ruby
-
-COPY Gemfile* /ruby
-
-RUN gem install bundler && \
-    cd /ruby && \
-    bundle install
+# RUN  /ruby
+# RUN gem install bundler && \
+#    cd /ruby && \
+#    bundle install
 
 # Expose ports
 EXPOSE 3389 8080
 
 # BAKE Community Repositories into the image
-COPY image/comunity/ /community/
+#COPY image/comunity/ /community/
 
 # Writes to host desks/entrypoint.sh will override image value because of VOLUME mapping
-COPY desks/ /desks/
+#COPY desks/ /desks/
 
-RUN chmod +x /desks/*
+#RUN chmod +x /desks/*
 
-ENTRYPOINT ["/desks/entrypoint.sh"]
+ENTRYPOINT ["/scripts/entrypoint.sh"]
