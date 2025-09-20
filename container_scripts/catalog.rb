@@ -24,7 +24,7 @@ def catalog_test(file:'scripts/catalog.rb')
 end
 
 if __FILE__ == $0
-    dump(file: __FILE__)
+    dump_catalog(file: __FILE__)
 end
     # instance = catalog.instance
     # PP.pp(instance.catalog.parts)

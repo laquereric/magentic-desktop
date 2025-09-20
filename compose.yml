@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: magentic-desktop
     entrypoint: ["/bin/bash", "-c"]
-    command: ["${OVERRIDE_COMMAND:-/desks/entrypoint.sh}"]
+    command: ["${OVERRIDE_COMMAND:-/scripts/entrypoint.sh}"]
     privileged: true
     ports:
       - "3389:3389"

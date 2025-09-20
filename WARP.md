@@ -12,6 +12,12 @@ Prerequisites (macOS host)
   - /Users/ericlaquer/Documents/GitHub -> mounted to /GitHub in the container
 - Optional: RDP client to connect to localhost:3389
 
+Warp indexing (host)
+- Local gem referenced in Gemfile uses a container path: /GitHub/lubuntu-gui. On the host, index this folder in Warp so it’s searchable:
+  - /Users/ericlaquer/Documents/GitHub/lubuntu-gui
+- In Warp: Settings > Code > Codebase Index > Add folder
+- Optional: add a .warpindexingignore in that gem repo to exclude heavy or irrelevant files (e.g., large assets, build artifacts).
+
 Common commands
 - Build the image (no cache):
   - ./scripts/build
