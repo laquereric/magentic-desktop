@@ -24,7 +24,7 @@ RUN apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugi
     apt-get install -y xrdp
 
 # Copy .config/ directory as a unit
-COPY .config/image /config
+COPY .config/container /config
 
 # Install Desktop Environment and Applications
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y lubuntu-desktop && \

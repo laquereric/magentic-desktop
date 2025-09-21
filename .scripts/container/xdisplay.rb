@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
-def 2_xdisplay
-  puts ".scripts/2_xdisplay.rb"
+def xdisplay
+  puts ".scripts/xdisplay.rb"
    
   if system("service xrdp status >/dev/null 2>&1")
     puts "XRDP service is already running."
@@ -15,13 +15,13 @@ def 2_xdisplay
   if ARGV.length > 0
     puts "Executing command: #{ARGV.join(' ')}"
     exec(*ARGV)
-  else
+  #else
     # Default: keep container running with bash
-    puts "Starting interactive shell..."
-    exec("/bin/bash")
+  #  puts "Starting interactive shell..."
+  #  exec("/bin/bash")
   end
 end
 
 if __FILE__ == $0
-  $0
+  xdisplay
 end

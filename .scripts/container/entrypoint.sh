@@ -6,9 +6,8 @@ echo "Container initialization started!"
 echo " "
 
 /scripts/docker.sh
+/scripts/xdisplay.rb
 /scripts/bundle.rb
-bundle exec /scripts/users.rb
-bundle exec /scripts/xdisplay.rb
 
 echo " "
 echo "Container initialization completed!"
@@ -55,10 +54,9 @@ alias la='ls -A'
 alias l='ls -CF'
 EOF
 
-# Start the systemctl replacement as PID 1
-echo "Starting systemctl replacement as PID 1..."
-#exec /scripts/systemctl_wrapper.sh
-
-# Start interactive bash shell instead of systemctl as PID 1
+# Start interactive bash shell
 #echo "Starting interactive shell..."
 #exec /bin/bash
+
+# Start PID1 with systemctl
+exec systemctl

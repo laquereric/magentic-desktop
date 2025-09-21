@@ -1,24 +1,14 @@
 #!/usr/bin/env ruby
 
-def bundler
-  puts ".scripts/0_bundler.rb"
+def bundle
+  puts "/scripts/bundle.rb"
 
-  # Start Docker service
-  puts "Starting Docker service..."
-  unless system("service docker start")
-    puts "Docker service already running or failed to start"
-  end
+  puts "Installing bundler and running bundle install..."
+  system("gem install bundler && bundle install && bundle exec ruby /scripts/users.rb")
 
-  puts " "
-
-  #system("bash /usr/local/bin/add_users")
-  system("gem install bundler")
-  system("bundle install")
-  #system("bundle exec ruby /scripts/catalog.rb")
-
-  puts " "
+  puts "Bundle setup completed"
 end
 
 if __FILE__ == $0
-  $0
+  bundle
 end
