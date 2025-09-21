@@ -1,10 +1,7 @@
 #!/usr/bin/env ruby
 
-def xdisplay
-  puts "scripts/entrypoint.rb - last - Starting magentic-desktop container initialization..."
-
-  # Check and start XRDP service
-  puts "Checking XRDP service status..."
+def 2_xdisplay
+  puts ".scripts/2_xdisplay.rb"
    
   if system("service xrdp status >/dev/null 2>&1")
     puts "XRDP service is already running."
@@ -13,12 +10,6 @@ def xdisplay
     system("service xrdp start")
     puts "XRDP service started successfully."
   end
-
-  puts " "
-  puts "Container initialization completed!"
-  puts "XRDP is running on port 3389"
-  puts "VS Code will be available on port #{ENV['VSCODE_PORT']}"
-  puts " "
 
   # If a command was provided, execute it
   if ARGV.length > 0
@@ -31,4 +22,6 @@ def xdisplay
   end
 end
 
-xdisplay
+if __FILE__ == $0
+  $0
+end

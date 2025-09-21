@@ -37,21 +37,23 @@ RUN id -u xrdp 2>/dev/null || adduser --disabled-password --gecos "" xrdp; \
     usermod -aG docker root; \
     usermod -aG docker xrdp || true
 
-# Copy image_config directory as a unit
-COPY image_config/ /config
+# Copy .config/ directory as a unit
+COPY .config/image /.config
 
 # Install Firefox configurations
 RUN mv /config/firefox/packages.mozilla.org.asc /etc/apt/keyrings/ && \
     mv /config/firefox/mozilla.sources /etc/apt/sources.list.d/ && \
     mv /config/firefox/mozilla /etc/apt/preferences.d/
 
-# Copy container_scripts directory as a unit
-COPY container_scripts/ /scripts
+    ############################################################
 
-RUN chmod +x /scripts/*
+# Copy image_config directory as a unit
+COPY .scripts/container /.scripts/
+
+RUN chmod +x /.scripts/*
 
 COPY Gemfile* /
 
 EXPOSE 3389 8080
 
-ENTRYPOINT ["/scripts/entrypoint.sh"]
+ENTRYPOINT ["/.scripts/entrypoint.sh"]

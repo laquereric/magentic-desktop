@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
-def bundler
-  puts "scripts/entrypoint.rb first - Starting magentic-desktop container initialization..."
+def 0_bundler
+  puts ".scripts/0_bundler.rb"
 
   # Start Docker service
   puts "Starting Docker service..."
@@ -19,4 +19,6 @@ def bundler
   puts " "
 end
 
-bundler
+if __FILE__ == $0
+  $0
+end
