@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-def 0_bundler
+def bundler
   puts ".scripts/0_bundler.rb"
 
   # Start Docker service

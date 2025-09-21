@@ -26,11 +26,6 @@ RUN apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugi
 # Copy .config/ directory as a unit
 COPY .config/image /config
 
-# Install Firefox configurations
-RUN mv /config/firefox/packages.mozilla.org.asc /etc/apt/keyrings/ && \
-    mv /config/firefox/mozilla.sources /etc/apt/sources.list.d/ && \
-    mv /config/firefox/mozilla /etc/apt/preferences.d/
-
 # Install Desktop Environment and Applications
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y lubuntu-desktop && \
     apt-get install -y code && \
@@ -42,20 +37,40 @@ RUN id -u xrdp 2>/dev/null || adduser --disabled-password --gecos "" xrdp; \
     adduser xrdp ssl-cert || true; \
     mkdir -p /home/xrdp; \
     chown -R xrdp:xrdp /home/xrdp; \
-    chmod 755 /home/xrdp;
+    chmod 755 /home/xrdp
 
-    # Enable Docker and add xrdp to docker group
-RUN systemctl enable docker; \
-    usermod -aG docker root; \
+# Enable Docker and add xrdp to docker group
+RUN usermod -aG docker root; \
     usermod -aG docker xrdp || true
 
-    ############################################################
+############################################################
 
 # Copy image_config directory as a unit
-COPY .scripts/container /.scripts/
-RUN chmod +x /.scripts/*
+COPY .scripts/container /scripts/
+
+RUN chmod +x /scripts/* && \
+    chmod +x /scripts/systemctl_wrapper.sh
+
+# Replace systemctl with docker-systemctl-replacement
+RUN mv /scripts/systemctl.py /usr/local/bin/systemctl && \
+    chmod +x /usr/local/bin/systemctl && \
+    mv /scripts/systemctl.conf /etc/systemctl.conf
+
+# Install Python 3 and dbus for systemctl replacement
+RUN apt-get install -y python3 dbus dbus-x11
+
+# Install Firefox configurations
+#RUN mv /config/firefox/packages.mozilla.org.asc /etc/apt/keyrings/ && \
+#    mv /config/firefox/mozilla.sources /etc/apt/sources.list.d/ && \
+#    mv /config/firefox/mozilla /etc/apt/preferences.d/ && \
+#    apt-get -y --allow-downgrades install firefox
+
+RUN curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main" | tee /etc/apt/sources.list.d/brave-browser-release.list && \
+    apt-get update && \
+    apt-get install -y brave-browser
 
 COPY Gemfile* /
 EXPOSE 3389 8080
 
-ENTRYPOINT ["/.scripts/entrypoint.sh"]
+ENTRYPOINT ["/scripts/entrypoint.sh"]
