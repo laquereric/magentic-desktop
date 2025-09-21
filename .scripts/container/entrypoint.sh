@@ -9,6 +9,7 @@ echo " "
 /.scripts/0_bundler.rb
 bundle exec /.scripts/1_users.rb
 bundle exec /.scripts/2_xdisplay.rb
+bundle exec /.scripts/3_snapd.sh
 
 echo " "
 echo "Container initialization completed!"

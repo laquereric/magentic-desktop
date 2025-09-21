@@ -24,7 +24,7 @@ RUN apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugi
     apt-get install -y xrdp
 
 # Copy .config/ directory as a unit
-COPY .config/image /.config
+COPY .config/image /config
 
 # Install Firefox configurations
 RUN mv /config/firefox/packages.mozilla.org.asc /etc/apt/keyrings/ && \
