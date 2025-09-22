@@ -2,8 +2,12 @@ FROM ubuntu:latest
 
 # Update and install basic packages
 RUN apt-get update && \
-    apt-get install -y gpg lsb-release curl zsh nano git gh inetutils-ping net-tools iproute2 nmap snap && \
+    apt-get install -y gpg lsb-release curl zsh nano git gh inetutils-ping net-tools iproute2 nmap && \
     install -d -m 0755 /etc/apt/keyrings
+
+# Disable and mask snap services
+RUN systemctl mask snapd.service snapd.socket snapd.seeded.service || true && \
+    systemctl disable snapd.service snapd.socket snapd.seeded.service || true
 
 # Install Docker
 RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
