@@ -8,6 +8,13 @@ GIT
       nokogiri (~> 1.15)
       ruby-dbus (~> 0.25)
 
+GIT
+  remote: https://github.com/laquereric/nebius-cli-ruby.git
+  revision: 34427d0372f7ef3d9afacd4e5ad26c2c53dfa163
+  specs:
+    nebius-cli-ruby (0.1.0)
+      json (~> 2.0)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -32,6 +39,7 @@ GEM
     i18n (1.14.7)
       concurrent-ruby (~> 1.0)
     inifile (3.0.0)
+    json (2.15.0)
     logger (1.7.0)
     minitest (5.25.5)
     nokogiri (1.18.10-arm64-darwin)
@@ -56,6 +64,7 @@ PLATFORMS
 
 DEPENDENCIES
   lubuntu-gui!
+  nebius-cli-ruby!
   yard-activerecord
   yard-rails
 

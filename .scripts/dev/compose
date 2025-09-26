@@ -16,6 +16,7 @@ show_usage() {
     echo "  logs     - Show and follow container logs"
     echo "  restart  - Restart the container"
     echo "  build    - Build the image only (with cleanup)"
+    echo "  build_multi - Build multi-architecture image (ARM + Intel)"
     echo "  tag      - Tag an existing local image for GHCR registry"
     echo "  push_ghcr - Push the image to GHCR registry"
     echo "  local_image_repo - Show details of the local image repository"
@@ -27,6 +28,7 @@ show_usage() {
     echo "  $0 up                    # Start container (reuses existing image)"
     echo "  $0 rebuild               # Rebuild image and start container"
     echo "  $0 build                 # Build image only"
+    echo "  $0 build_multi           # Build multi-architecture image (ARM + Intel)"
     echo "  $0 tag                   # Tag existing image for GHCR registry"
     echo "  $0 push_ghcr             # Push image to GHCR registry"
     echo "  $0 local_image_repo      # Show local image repository details"
@@ -442,6 +444,40 @@ case "$COMMAND" in
         
         echo "Build completed!"
         ;;
+    "build_multi")
+        cleanup_and_rebuild
+        echo ""
+        echo "Building multi-architecture magentic-desktop image..."
+        echo "This will build for both ARM64 and AMD64 architectures"
+        
+        # Check if buildx is available
+        if ! docker buildx version &> /dev/null; then
+            echo "ERROR: Docker buildx is not available!"
+            echo "Please install Docker buildx or update Docker to a newer version"
+            exit 1
+        fi
+        
+        # Create and use a new builder instance for multi-platform builds
+        echo "Setting up multi-platform builder..."
+        verbose_echo "Executing: docker buildx create --name multiarch --use"
+        if ! docker buildx create --name multiarch --use 2>/dev/null; then
+            echo "Builder 'multiarch' already exists, using existing builder"
+            docker buildx use multiarch
+        fi
+        
+        # Build for multiple platforms
+        echo "Building for multiple architectures..."
+        verbose_echo "Executing: docker buildx build --platform linux/amd64,linux/arm64 --tag ghcr.io/laquereric/magentic-desktop:latest --push ."
+        
+        if ! docker buildx build --platform linux/amd64,linux/arm64 --tag ghcr.io/laquereric/magentic-desktop:latest --push .; then
+            echo "ERROR: Failed to build multi-architecture image!"
+            echo "Make sure you're authenticated with GHCR: docker login ghcr.io"
+            exit 1
+        fi
+        
+        echo "✓ Multi-architecture image successfully built and pushed to GHCR!"
+        echo "Image is now available for both ARM64 and AMD64 architectures"
+        ;;
     "tag")
         echo "Tagging existing local image for GHCR registry..."
         
@@ -471,17 +507,17 @@ case "$COMMAND" in
         
         # Set CP environment for GHCR authentication
         echo "Setting up CP environment..."
-        verbose_echo "Executing: source .secrets/set_CP.sh"
-        if ! source .secrets/set_CP.sh; then
-            abort_with_reason "Failed to set CP environment" "The '.secrets/set_CP.sh' script returned an error"
+        verbose_echo "Executing: source .secrets/eric.laquer/set_env.sh"
+        if ! source .secrets/eric.laquer/set_env.sh; then
+            abort_with_reason "Failed to set CP environment" "The '.secrets/eric.laquer/set_env.sh' script returned an error"
         fi
         echo "✓ CP environment configured"
         
         # Authenticate with GHCR using credentials from secrets
         echo "Authenticating with GHCR registry..."
-        verbose_echo "Executing: echo \$CP | docker login ghcr.io --username \$USERNAME --password-stdin"
-        if ! echo "$CP" | docker login ghcr.io --username "$USERNAME" --password-stdin; then
-            abort_with_reason "Failed to authenticate with GHCR" "The 'docker login' command returned an error. Check your CP token and USERNAME in .secrets/set_CP.sh"
+        verbose_echo "Executing: echo \$CP | docker login ghcr.io --username \$GITHUB_USERNAME --password-stdin"
+        if ! echo "$CP" | docker login ghcr.io --username "$GITHUB_USERNAME" --password-stdin; then
+            abort_with_reason "Failed to authenticate with GHCR" "The 'docker login' command returned an error. Check your CP token and GITHUB_USERNAME in .secrets/eric.laquer/set_env.sh"
         fi
         echo "✓ Successfully authenticated with GHCR"
         
