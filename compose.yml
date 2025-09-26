@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      tags:
+        - ghcr.io/laquereric/magentic-desktop:latest
     container_name: magentic-desktop
     entrypoint: ["/bin/bash", "-c"]
     command: ["${OVERRIDE_COMMAND:-/scripts/entrypoint.sh}"]

@@ -16,6 +16,9 @@ show_usage() {
     echo "  logs     - Show and follow container logs"
     echo "  restart  - Restart the container"
     echo "  build    - Build the image only (with cleanup)"
+    echo "  tag      - Tag an existing local image for GHCR registry"
+    echo "  push_ghcr - Push the image to GHCR registry"
+    echo "  local_image_repo - Show details of the local image repository"
     echo "  clean    - Clean up containers and images only"
     echo "  status   - Show container status"
     echo "  shell    - Start container and drop into interactive bash session"
@@ -23,6 +26,10 @@ show_usage() {
     echo "Examples:"
     echo "  $0 up                    # Start container (reuses existing image)"
     echo "  $0 rebuild               # Rebuild image and start container"
+    echo "  $0 build                 # Build image only"
+    echo "  $0 tag                   # Tag existing image for GHCR registry"
+    echo "  $0 push_ghcr             # Push image to GHCR registry"
+    echo "  $0 local_image_repo      # Show local image repository details"
     echo "  $0 -v up                 # Start container with verbose output"
     echo "  $0 shell                 # Start container and drop into bash session"
     echo "  $0 -s 'echo hello' up    # Start container with custom shell command"
@@ -91,8 +98,11 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Set default command if none provided
-COMMAND="${COMMAND:-up}"
+# Set default command if none provided - show usage instead of defaulting to 'up'
+if [ -z "$COMMAND" ]; then
+    show_usage
+    exit 0
+fi
 
 # Verbose output function
 verbose_echo() {
@@ -123,6 +133,18 @@ abort_with_reason() {
     echo ""
     echo "Aborting script execution."
     exit $exit_code
+}
+
+# Function to tag image with GHCR registry
+tag_image() {
+    echo "Tagging image for GHCR registry..."
+    verbose_echo "Executing: docker tag magentic-desktop-magentic-desktop ghcr.io/laquereric/magentic-desktop:latest"
+    if ! docker tag magentic-desktop-magentic-desktop ghcr.io/laquereric/magentic-desktop:latest; then
+        echo "Warning: Failed to tag image with GHCR registry tag"
+        verbose_echo "This is not critical - the image will still work locally"
+    else
+        echo "✓ Image successfully tagged as ghcr.io/laquereric/magentic-desktop:latest"
+    fi
 }
 
 # Function to cleanup existing containers and images
@@ -275,6 +297,9 @@ case "$COMMAND" in
             exit 1
         fi
         
+        # Tag the image after successful build
+        tag_image
+        
         # Wait a moment for container to fully start
         echo "Waiting for container to start..."
         sleep 3
@@ -406,8 +431,137 @@ case "$COMMAND" in
         echo ""
         echo "Building magentic-desktop image..."
         verbose_echo "Executing: $COMPOSE_CMD build --no-cache"
-        $COMPOSE_CMD build --no-cache
+        if ! $COMPOSE_CMD build --no-cache; then
+            echo "ERROR: Failed to build image!"
+            echo "Aborting script execution."
+            exit 1
+        fi
+        
+        # Tag the image after successful build
+        tag_image
+        
         echo "Build completed!"
+        ;;
+    "tag")
+        echo "Tagging existing local image for GHCR registry..."
+        
+        # Check if magentic-desktop-magentic-desktop image exists locally
+        if ! docker images --format "table {{.Repository}}:{{.Tag}}" | grep -q "^magentic-desktop-magentic-desktop "; then
+            echo "ERROR: Local image 'magentic-desktop-magentic-desktop' not found!"
+            echo "Available images:"
+            docker images --format "table {{.Repository}}:{{.Tag}}" | head -10
+            echo ""
+            echo "Please build the image first using: $0 build"
+            echo "Or rebuild with: $0 rebuild"
+            exit 1
+        fi
+        
+        verbose_echo "Executing: docker tag magentic-desktop-magentic-desktop ghcr.io/laquereric/magentic-desktop:latest"
+        
+        # Tag the image for GHCR registry
+        if ! docker tag magentic-desktop-magentic-desktop ghcr.io/laquereric/magentic-desktop:latest; then
+            abort_with_reason "Failed to tag image" "The 'docker tag' command returned an error"
+        fi
+        
+        echo "✓ Image successfully tagged as ghcr.io/laquereric/magentic-desktop:latest"
+        echo "You can now push this image using: $0 push_ghcr"
+        ;;
+    "push_ghcr")
+        echo "Pushing image to GHCR registry..."
+        
+        # Set CP environment for GHCR authentication
+        echo "Setting up CP environment..."
+        verbose_echo "Executing: source .secrets/set_CP.sh"
+        if ! source .secrets/set_CP.sh; then
+            abort_with_reason "Failed to set CP environment" "The '.secrets/set_CP.sh' script returned an error"
+        fi
+        echo "✓ CP environment configured"
+        
+        # Authenticate with GHCR using credentials from secrets
+        echo "Authenticating with GHCR registry..."
+        verbose_echo "Executing: echo \$CP | docker login ghcr.io --username \$USERNAME --password-stdin"
+        if ! echo "$CP" | docker login ghcr.io --username "$USERNAME" --password-stdin; then
+            abort_with_reason "Failed to authenticate with GHCR" "The 'docker login' command returned an error. Check your CP token and USERNAME in .secrets/set_CP.sh"
+        fi
+        echo "✓ Successfully authenticated with GHCR"
+        
+        # Check if the image exists locally
+        if ! docker images --format "table {{.Repository}}:{{.Tag}}" | grep -q "ghcr.io/laquereric/magentic-desktop:latest"; then
+            echo "ERROR: Image ghcr.io/laquereric/magentic-desktop:latest not found locally!"
+            echo "Please build the image first using: $0 build"
+            echo "Or rebuild with: $0 rebuild"
+            exit 1
+        fi
+        
+        verbose_echo "Executing: docker push ghcr.io/laquereric/magentic-desktop:latest"
+        
+        # Push the image to GHCR registry
+        if ! docker push ghcr.io/laquereric/magentic-desktop:latest; then
+            abort_with_reason "Failed to push image to GHCR registry" "The 'docker push' command returned an error. Make sure you're authenticated with GHCR."
+        fi
+        
+        echo "✓ Image successfully pushed to ghcr.io/laquereric/magentic-desktop:latest"
+        echo "You can now pull this image from: ghcr.io/laquereric/magentic-desktop:latest"
+        ;;
+    "local_image_repo")
+        echo "Local image repository details:"
+        echo "================================"
+        
+        # Show all magentic-desktop related images
+        echo ""
+        echo "📦 Available magentic-desktop images:"
+        if docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.ID}}\t{{.CreatedAt}}\t{{.Size}}" | grep -q "magentic-desktop"; then
+            docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.ID}}\t{{.CreatedAt}}\t{{.Size}}" | grep "magentic-desktop"
+        else
+            echo "No magentic-desktop images found locally"
+        fi
+        
+        # Show GHCR tagged images
+        echo ""
+        echo "🏷️  GHCR tagged images:"
+        if docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.ID}}\t{{.CreatedAt}}\t{{.Size}}" | grep -q "ghcr.io/laquereric/magentic-desktop"; then
+            docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.ID}}\t{{.CreatedAt}}\t{{.Size}}" | grep "ghcr.io/laquereric/magentic-desktop"
+        else
+            echo "No GHCR tagged images found locally"
+        fi
+        
+        # Show detailed image information if available
+        if docker images --format "{{.Repository}}" | grep -q "^magentic-desktop-magentic-desktop$"; then
+            echo ""
+            echo "🔍 Detailed image information:"
+            verbose_echo "Executing: docker inspect magentic-desktop-magentic-desktop"
+            docker inspect magentic-desktop-magentic-desktop 2>/dev/null | jq -r '.[] | {
+                "Id": .Id,
+                "Created": .Created,
+                "Size": .Size,
+                "Architecture": .Architecture,
+                "Os": .Os,
+                "Author": .Author,
+                "Comment": .Comment,
+                "Config": {
+                    "Cmd": .Config.Cmd,
+                    "Entrypoint": .Config.Entrypoint,
+                    "WorkingDir": .Config.WorkingDir,
+                    "User": .Config.User,
+                    "ExposedPorts": .Config.ExposedPorts,
+                    "Env": .Config.Env
+                }
+            }' 2>/dev/null || docker inspect magentic-desktop-magentic-desktop
+        fi
+        
+        # Show image layers if available
+        if docker images --format "{{.Repository}}" | grep -q "^magentic-desktop-magentic-desktop$"; then
+            echo ""
+            echo "📋 Image layers:"
+            verbose_echo "Executing: docker history magentic-desktop-magentic-desktop"
+            docker history magentic-desktop-magentic-desktop --format "table {{.CreatedBy}}\t{{.Size}}\t{{.CreatedAt}}" 2>/dev/null || docker history magentic-desktop-magentic-desktop
+        fi
+        
+        echo ""
+        echo "💡 Tips:"
+        echo "  - Use 'docker images' to see all images"
+        echo "  - Use 'docker inspect <image>' for detailed information"
+        echo "  - Use 'docker history <image>' to see image layers"
         ;;
     "clean")
         cleanup_and_rebuild

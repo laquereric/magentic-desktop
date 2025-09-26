@@ -1,4 +1,0 @@
-#!/bin/bash
-echo "Building magentic-desktop image..."
-docker build --progress=plain --no-cache -t magentic-desktop .
-echo "Build completed!"
