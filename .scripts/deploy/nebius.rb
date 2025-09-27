@@ -24,6 +24,12 @@ class Nebius
       upload_run
     when 'profile_create'
       profile_create
+    when 'start_compute'
+      start_compute
+    when 'stop_compute'
+      stop_compute
+    when 'compute_status'
+      compute_status
     else
       show_usage
     end
@@ -50,6 +56,9 @@ class Nebius
         root_shell      - Open SSH shell to remote server using admin user credentials from .secrets/users/[admin_user]
         upload_run      - Upload and run the host run script on remote server
         profile_create  - Create Nebius profile using environment from .secrets/services/nebius/set_env.sh
+        start_compute   - Start Nebius compute instance using nebius-cli-ruby gem
+        stop_compute    - Stop Nebius compute instance using nebius-cli-ruby gem
+        compute_status  - Show status of all Nebius compute instances using nebius-cli-ruby gem
       
       Options:
         -h, --help     Show this help message
@@ -58,6 +67,9 @@ class Nebius
         #{$0} root_shell
         #{$0} upload_run
         #{$0} profile_create
+        #{$0} start_compute
+        #{$0} stop_compute
+        #{$0} compute_status
     USAGE
   end
 
@@ -91,6 +103,36 @@ class Nebius
     load_nebius_environment
     validate_environment_variables
     execute_nebius_profile_create
+  rescue => e
+    handle_error(e)
+  end
+
+  def start_compute
+    puts "Starting Nebius compute instance..."
+    
+    load_nebius_environment
+    validate_environment_variables
+    execute_start_compute
+  rescue => e
+    handle_error(e)
+  end
+
+  def stop_compute
+    puts "Stopping Nebius compute instance..."
+    
+    load_nebius_environment
+    validate_environment_variables
+    execute_stop_compute
+  rescue => e
+    handle_error(e)
+  end
+
+  def compute_status
+    puts "Checking Nebius compute instances status..."
+    
+    load_nebius_environment
+    validate_environment_variables
+    execute_compute_status
   rescue => e
     handle_error(e)
   end
@@ -301,6 +343,100 @@ class Nebius
     end
     
     puts "✓ Nebius profile created successfully!"
+  end
+
+  def execute_start_compute
+    require 'nebius-cli-ruby'
+    
+    puts "Using Nebius CLI Ruby gem to start compute instance..."
+    
+    # Initialize the Nebius client
+    client = Nebius::Client.new(
+      profile: ENV['NB_PROFILE_NAME'],
+      endpoint: 'api.nebius.cloud',
+      federation_endpoint: 'auth.nebius.com'
+    )
+    
+    # Start compute instance
+    begin
+      result = client.start_compute(
+        project_id: ENV['NB_PROJECT_ID']
+      )
+      
+      puts "✓ Compute instance started successfully!"
+      puts "Instance details: #{result.inspect}"
+    rescue => e
+      puts "Error: Failed to start compute instance: #{e.message}"
+      exit 1
+    end
+  end
+
+  def execute_stop_compute
+    require 'nebius-cli-ruby'
+    
+    puts "Using Nebius CLI Ruby gem to stop compute instance..."
+    
+    # Initialize the Nebius client
+    client = Nebius::Client.new(
+      profile: ENV['NB_PROFILE_NAME'],
+      endpoint: 'api.nebius.cloud',
+      federation_endpoint: 'auth.nebius.com'
+    )
+    
+    # Stop compute instance
+    begin
+      result = client.stop_compute(
+        project_id: ENV['NB_PROJECT_ID']
+      )
+      
+      puts "✓ Compute instance stopped successfully!"
+      puts "Instance details: #{result.inspect}"
+    rescue => e
+      puts "Error: Failed to stop compute instance: #{e.message}"
+      exit 1
+    end
+  end
+
+  def execute_compute_status
+    require 'nebius-cli-ruby'
+    
+    puts "Using Nebius CLI Ruby gem to check compute instances status..."
+    
+    # Initialize the Nebius client
+    client = Nebius::Client.new(
+      profile: ENV['NB_PROFILE_NAME'],
+      endpoint: 'api.nebius.cloud',
+      federation_endpoint: 'auth.nebius.com'
+    )
+    
+    # Get compute instances status
+    begin
+      result = client.list_compute_instances(
+        project_id: ENV['NB_PROJECT_ID']
+      )
+      
+      puts "✓ Compute instances status retrieved successfully!"
+      puts "\n=== Compute Instances Status ==="
+      
+      if result && result.any?
+        result.each_with_index do |instance, index|
+          puts "\nInstance #{index + 1}:"
+          puts "  ID: #{instance[:id] || 'N/A'}"
+          puts "  Name: #{instance[:name] || 'N/A'}"
+          puts "  Status: #{instance[:status] || 'N/A'}"
+          puts "  Zone: #{instance[:zone] || 'N/A'}"
+          puts "  Machine Type: #{instance[:machine_type] || 'N/A'}"
+          puts "  Created: #{instance[:created_at] || 'N/A'}"
+          puts "  IP Address: #{instance[:ip_address] || 'N/A'}"
+        end
+      else
+        puts "No compute instances found."
+      end
+      
+    rescue => e
+      puts "Error: Failed to get compute instances status: #{e.message}"
+      exit 1
+    end
   end
 
   def handle_error(error)
