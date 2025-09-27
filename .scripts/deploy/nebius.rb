@@ -4,7 +4,7 @@
 require 'optparse'
 require 'open3'
 
-class Nebius
+class NebiusRunner
   # Configuration constants
   REMOTE_HOST = '204.12.169.67'
   REMOTE_USER = 'eric_laquer'
@@ -56,9 +56,9 @@ class Nebius
         root_shell      - Open SSH shell to remote server using admin user credentials from .secrets/users/[admin_user]
         upload_run      - Upload and run the host run script on remote server
         profile_create  - Create Nebius profile using environment from .secrets/services/nebius/set_env.sh
-        start_compute   - Start Nebius compute instance using nebius-cli-ruby gem
-        stop_compute    - Stop Nebius compute instance using nebius-cli-ruby gem
-        compute_status  - Show status of all Nebius compute instances using nebius-cli-ruby gem
+        start_compute   - Start Nebius compute instance using nebius gem
+        stop_compute    - Stop Nebius compute instance using nebius gem
+        compute_status  - Show status of all Nebius compute instances using nebius gem
       
       Options:
         -h, --help     Show this help message
@@ -232,7 +232,7 @@ class Nebius
     ]
     
     puts "Executing SSH command: #{ssh_command.join(' ')}"
-    exec(*ssh_command)
+    exec('bundle', 'exec', *ssh_command)
   end
 
   def upload_host_script
@@ -248,10 +248,10 @@ class Nebius
     
     puts "Executing SCP command: #{scp_command.join(' ')}"
     
-    unless system(*scp_command)
-      puts "Error: Failed to upload run script"
-      exit 1
-    end
+      unless system('bundle', 'exec', *scp_command)
+        puts "Error: Failed to upload run script"
+        exit 1
+      end
     
     puts "✓ Host run script uploaded successfully!"
   end
@@ -260,7 +260,7 @@ class Nebius
     puts "Checking and installing Ruby on remote server..."
     
     ruby_check_command = build_ssh_command('ruby --version')
-    ruby_check_result = `#{ruby_check_command.join(' ')} 2>&1`
+    ruby_check_result = `bundle exec #{ruby_check_command.join(' ')} 2>&1`
     
     unless $?.success?
       install_ruby
@@ -275,10 +275,10 @@ class Nebius
     
     puts "Executing Ruby installation: #{install_ruby_command.join(' ')}"
     
-    unless system(*install_ruby_command)
-      puts "Error: Failed to install Ruby"
-      exit 1
-    end
+        unless system('bundle', 'exec', *install_ruby_command)
+          puts "Error: Failed to install Ruby"
+          exit 1
+        end
     
     puts "✓ Ruby installed successfully!"
   end
@@ -289,10 +289,10 @@ class Nebius
     
     puts "Executing SSH command: #{ssh_command.join(' ')}"
     
-    unless system(*ssh_command)
-      puts "Error: Failed to make script executable"
-      exit 1
-    end
+      unless system('bundle', 'exec', *ssh_command)
+        puts "Error: Failed to make script executable"
+        exit 1
+      end
     
     puts "✓ Script is now executable on remote server!"
     puts "You can now run: ssh -i #{SSH_KEY_NAME} -l #{REMOTE_USER} #{REMOTE_HOST} '~/run.rb start'"
@@ -337,7 +337,7 @@ class Nebius
     
     puts "Executing command: #{nebius_command.join(' ')}"
     
-    unless system(*nebius_command)
+    unless system('bundle', 'exec', *nebius_command)
       puts "Error: Failed to create Nebius profile"
       exit 1
     end
@@ -346,74 +346,70 @@ class Nebius
   end
 
   def execute_start_compute
-    require 'nebius-cli-ruby'
+    puts "Using Nebius CLI to start compute instance..."
     
-    puts "Using Nebius CLI Ruby gem to start compute instance..."
+    # Build the nebius compute instance create command
+    nebius_command = [
+      'nebius', 'compute', 'instance', 'create',
+      '--profile', ENV['NB_PROFILE_NAME'],
+      '--name', "magentic-desktop-#{Time.now.to_i}",
+      '--zone-id', 'ru-central1-a',
+      '--cores', '2',
+      '--memory', '4',
+      '--image-family', 'ubuntu-2004-lts',
+      '--ssh-key', '~/.ssh/id_rsa.pub'
+    ]
     
-    # Initialize the Nebius client
-    client = Nebius::Client.new(
-      profile: ENV['NB_PROFILE_NAME'],
-      endpoint: 'api.nebius.cloud',
-      federation_endpoint: 'auth.nebius.com'
-    )
+    puts "Executing command: #{nebius_command.join(' ')}"
     
-    # Start compute instance
-    begin
-      result = client.start_compute(
-        project_id: ENV['NB_PROJECT_ID']
-      )
-      
-      puts "✓ Compute instance started successfully!"
-      puts "Instance details: #{result.inspect}"
-    rescue => e
-      puts "Error: Failed to start compute instance: #{e.message}"
+    unless system('bundle', 'exec', *nebius_command)
+      puts "Error: Failed to start compute instance"
       exit 1
     end
+    
+    puts "✓ Compute instance started successfully!"
   end
 
   def execute_stop_compute
-    require 'nebius-cli-ruby'
+    puts "Using Nebius CLI to stop compute instance..."
     
-    puts "Using Nebius CLI Ruby gem to stop compute instance..."
+    # First get the list of instances to find one to stop
+    instances = compute_instances
+    if instances.empty?
+      puts "No compute instances found to stop."
+      return
+    end
     
-    # Initialize the Nebius client
-    client = Nebius::Client.new(
-      profile: ENV['NB_PROFILE_NAME'],
-      endpoint: 'api.nebius.cloud',
-      federation_endpoint: 'auth.nebius.com'
-    )
+    # Stop the first running instance
+    running_instance = instances.find { |instance| instance[:status] == 'running' }
+    if running_instance.nil?
+      puts "No running instances found to stop."
+      return
+    end
     
-    # Stop compute instance
-    begin
-      result = client.stop_compute(
-        project_id: ENV['NB_PROJECT_ID']
-      )
-      
-      puts "✓ Compute instance stopped successfully!"
-      puts "Instance details: #{result.inspect}"
-    rescue => e
-      puts "Error: Failed to stop compute instance: #{e.message}"
+    # Build the nebius compute instance delete command
+    nebius_command = [
+      'nebius', 'compute', 'instance', 'delete',
+      '--profile', ENV['NB_PROFILE_NAME'],
+      '--id', running_instance[:id]
+    ]
+    
+    puts "Executing command: #{nebius_command.join(' ')}"
+    
+    unless system('bundle', 'exec', *nebius_command)
+      puts "Error: Failed to stop compute instance"
       exit 1
     end
+    
+    puts "✓ Compute instance stopped successfully!"
   end
 
   def execute_compute_status
-    require 'nebius-cli-ruby'
+    puts "Using Nebius CLI to check compute instances status..."
     
-    puts "Using Nebius CLI Ruby gem to check compute instances status..."
-    
-    # Initialize the Nebius client
-    client = Nebius::Client.new(
-      profile: ENV['NB_PROFILE_NAME'],
-      endpoint: 'api.nebius.cloud',
-      federation_endpoint: 'auth.nebius.com'
-    )
-    
-    # Get compute instances status
+    # Get compute instances status using nebius CLI
     begin
-      result = client.list_compute_instances(
-        project_id: ENV['NB_PROJECT_ID']
-      )
+      result = compute_instances
       
       puts "✓ Compute instances status retrieved successfully!"
       puts "\n=== Compute Instances Status ==="
@@ -424,10 +420,10 @@ class Nebius
           puts "  ID: #{instance[:id] || 'N/A'}"
           puts "  Name: #{instance[:name] || 'N/A'}"
           puts "  Status: #{instance[:status] || 'N/A'}"
+          puts "  Public IP: #{instance[:public_ip] || 'N/A'}"
+          puts "  Resources/Preset: #{instance[:resources] || 'N/A'}"
           puts "  Zone: #{instance[:zone] || 'N/A'}"
-          puts "  Machine Type: #{instance[:machine_type] || 'N/A'}"
           puts "  Created: #{instance[:created_at] || 'N/A'}"
-          puts "  IP Address: #{instance[:ip_address] || 'N/A'}"
         end
       else
         puts "No compute instances found."
@@ -439,6 +435,111 @@ class Nebius
     end
   end
 
+  def compute_instances
+    # Build the nebius compute instance list command
+    nebius_command = [
+      'nebius', 'compute', 'instance', 'list',
+      '--profile', ENV['NB_PROFILE_NAME'],
+      '--format', 'json'
+    ]
+    
+    puts "Executing command: #{nebius_command.join(' ')}"
+    
+    # Execute the command and capture output
+    output = `#{nebius_command.join(' ')} 2>&1`
+    
+    unless $?.success?
+      puts "Error: Failed to execute nebius compute list command"
+      puts "Output: #{output}"
+      return []
+    end
+    
+    # Parse JSON output
+    begin
+      require 'json'
+      instances_data = JSON.parse(output)
+      
+      # Handle different JSON response structures
+      instances_data_array = []
+      
+      if instances_data.is_a?(Array)
+        instances_data_array = instances_data
+      elsif instances_data.is_a?(Hash)
+        # Check if the hash contains an array of instances
+        if instances_data['instances'] && instances_data['instances'].is_a?(Array)
+          instances_data_array = instances_data['instances']
+        elsif instances_data['items'] && instances_data['items'].is_a?(Array)
+          instances_data_array = instances_data['items']
+        else
+          # If it's a single instance hash, wrap it in an array
+          instances_data_array = [instances_data]
+        end
+      else
+        puts "Warning: Unexpected JSON structure, got #{instances_data.class}"
+        return []
+      end
+      
+      # Extract and format instance information
+      instances = []
+      instances_data_array.each do |instance|
+        # Ensure instance is a hash
+        unless instance.is_a?(Hash)
+          puts "Warning: Expected instance to be a hash, got #{instance.class}"
+          next
+        end
+        
+        # Safely extract public IP
+        public_ip = 'N/A'
+        begin
+          if instance['network_interfaces'] && instance['network_interfaces'].is_a?(Array) && !instance['network_interfaces'].empty?
+            network_interface = instance['network_interfaces'].first
+            if network_interface.is_a?(Hash) && network_interface['primary_v4_address'] && network_interface['primary_v4_address']['one_to_one_nat']
+              public_ip = network_interface['primary_v4_address']['one_to_one_nat']['address'] || 'N/A'
+            end
+          end
+        rescue => e
+          puts "Warning: Error extracting public IP: #{e.message}"
+        end
+        
+        # Safely extract resources
+        resources = 'N/A'
+        begin
+          if instance['resources'] && instance['resources'].is_a?(Hash)
+            if instance['resources']['cores'] && instance['resources']['memory']
+              cores = instance['resources']['cores']
+              memory = instance['resources']['memory']
+              resources = "#{cores} cores, #{memory} GB"
+            elsif instance['resources']['preset']
+              resources = instance['resources']['preset']
+            end
+          end
+        rescue => e
+          puts "Warning: Error extracting resources: #{e.message}"
+        end
+        
+        instances << {
+          id: instance['id'] || 'N/A',
+          name: instance['name'] || 'N/A',
+          status: instance['status'] || 'N/A',
+          public_ip: public_ip,
+          resources: resources,
+          zone: instance['zone_id'] || 'N/A',
+          created_at: instance['created_at'] || 'N/A'
+        }
+      end
+      
+      instances
+    rescue JSON::ParserError => e
+      puts "Error: Failed to parse JSON output: #{e.message}"
+      puts "Raw output: #{output}"
+      []
+    rescue => e
+      puts "Error: Unexpected error parsing instances: #{e.message}"
+      puts "Raw output: #{output}"
+      []
+    end
+  end
+
   def handle_error(error)
     puts "Error: #{error.message}"
     exit 1
@@ -446,4 +547,4 @@ class Nebius
 end
 
 # Run the application
-Nebius.new.run if __FILE__ == $0
+NebiusRunner.new.run if __FILE__ == $0

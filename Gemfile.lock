@@ -8,9 +8,8 @@ GIT
       nokogiri (~> 1.15)
       ruby-dbus (~> 0.25)
 
-GIT
-  remote: https://github.com/laquereric/nebius-cli-ruby.git
-  revision: 34427d0372f7ef3d9afacd4e5ad26c2c53dfa163
+PATH
+  remote: ../nebius-cli-ruby
   specs:
     nebius-cli-ruby (0.1.0)
       json (~> 2.0)

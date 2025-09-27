@@ -18,4 +18,5 @@ gem 'yard-rails'
 gem 'yard-activerecord'
 
 gem "lubuntu-gui", tangent_opensource: "lubuntu-gui"
-gem "nebius-cli-ruby", laquereric_opensource: "nebius-cli-ruby"
+#gem "nebius-cli-ruby", laquereric_opensource: "nebius-cli-ruby"
+gem "nebius-cli-ruby", path: "../nebius-cli-ruby"
